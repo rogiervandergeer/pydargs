@@ -164,3 +164,6 @@ cython_debug/
 
 # PyEnv
 .python-version
+
+# VS Code
+.vscode/
