@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from pydargs import parse
+from pytest import raises
 
 
 @dataclass
@@ -31,6 +32,8 @@ class TestParse:
         c = parse(Config, ["--a", "12", "--c", "1.23"])
         assert c.c == 1.23
 
+
+class TestParseBool:
     def test_bool_0(self):
         c = parse(Config, ["--a", "12", "--f", "0"])
         assert c.f is False
@@ -40,8 +43,8 @@ class TestParse:
         assert c.f is True
 
     def test_bool_lower(self):
-        c = parse(Config, ["--a", "12", "--f", "true"])
-        assert c.f is True
+        with raises(SystemExit):
+            parse(Config, ["--a", "12", "--f", "blabla"])
 
     def test_bool_upper_false(self):
         c = parse(Config, ["--a", "12", "--f", "False"])
@@ -58,3 +61,7 @@ class TestParse:
     def test_bool_no_flag(self):
         c = parse(Config, ["--a", "12", "--no-g"])
         assert c.g is False
+
+    def test_bool_too_many_arguments(self):
+        with raises(SystemExit):
+            parse(Config, ["--a", "12", "--g", "help"])
