@@ -2,6 +2,8 @@ import argparse
 import sys
 from argparse import ArgumentParser
 from dataclasses import fields, MISSING
+from datetime import date, datetime
+from functools import partial
 from typing import (
     Type,
     TypeVar,
@@ -12,6 +14,7 @@ from typing import (
     get_origin,
     get_args,
     Sequence,
+    Union,
 )
 
 
@@ -47,6 +50,17 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
                 )
             else:
                 raise NotImplementedError(f"Parsing into type {origin} is not implemented.")
+        elif field.type in (date, datetime):
+            parser.add_argument(
+                f"--{field.name.replace('_', '-')}",
+                default=argparse.SUPPRESS,
+                dest=field.name,
+                help=f"Override field {field.name}.",
+                required=field.default is MISSING and field.default_factory is MISSING,
+                type=partial(
+                    _parse_datetime, is_date=field.type is date, date_format=field.metadata.get("date_format")
+                ),
+            )
         else:
             parser.add_argument(
                 f"--{field.name.replace('_', '-')}",
@@ -56,6 +70,11 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
                 type=field.type,
             )
     return parser
+
+
+def _parse_datetime(date_string: str, is_date: bool, date_format: Optional[str] = None) -> Union[date, datetime]:
+    result = datetime.strptime(date_string, date_format) if date_format else datetime.fromisoformat(date_string)
+    return result.date() if is_date else result
 
 
 __all__ = ["parse"]
