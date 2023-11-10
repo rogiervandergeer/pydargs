@@ -6,7 +6,7 @@ from pytest import raises
 @dataclass
 class Config:
     a: int
-    g: bool = field(metadata={"bool_arg_type": "flag_only"})
+    g: bool = field(metadata={"as_flags": True})
     b: str = "abc"
     c: float = 0.1
     d: bool = False
