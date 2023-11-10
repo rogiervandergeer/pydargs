@@ -1,7 +1,17 @@
 import sys
 from argparse import ArgumentParser
 from dataclasses import fields
-from typing import Type, TypeVar, Optional, Protocol, ClassVar, Dict
+from typing import (
+    Type,
+    TypeVar,
+    Optional,
+    Protocol,
+    ClassVar,
+    Dict,
+    get_origin,
+    get_args,
+    Sequence,
+)
 
 
 class ADataclass(Protocol):
@@ -22,13 +32,26 @@ def parse(tp: Type[Dataclass], args: Optional[list[str]] = None) -> Dataclass:
 def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
     parser = ArgumentParser()
     for field in fields(tp):
-        parser.add_argument(
-            f"--{field.name.replace('_', '-')}",
-            default=field.default,
-            dest=field.name,
-            help=f"Override field {field.name}.",
-            type=field.type,
-        )
+        if origin := get_origin(field.type):
+            if origin is Sequence or origin is list:
+                parser.add_argument(
+                    f"--{field.name.replace('_', '-')}",
+                    default=field.default,
+                    dest=field.name,
+                    help=f"Override field {field.name}.",
+                    nargs="*",
+                    type=get_args(field.type)[0],
+                )
+            else:
+                raise NotImplementedError(f"Parsing into type {tp} is not implemented.")
+        else:
+            parser.add_argument(
+                f"--{field.name.replace('_', '-')}",
+                default=field.default,
+                dest=field.name,
+                help=f"Override field {field.name}.",
+                type=field.type,
+            )
     return parser
 
 

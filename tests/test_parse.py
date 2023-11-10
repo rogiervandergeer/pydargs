@@ -1,5 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pydargs import parse
+from pytest import raises
 
 
 @dataclass
@@ -8,6 +9,7 @@ class Config:
     b: str = "abc"
     c: float = 0.1
     d: bool = False
+    e: list[int] = field(default_factory=lambda: [])
 
 
 class TestParse:
@@ -30,3 +32,25 @@ class TestParse:
     def test_bool(self):
         c = parse(Config, ["--a", "12", "--d", "True"])
         assert c.d is True
+
+    def test_list(self):
+        c = parse(Config, ["--a", "12", "--e", "1", "2", "3"])
+        assert c.e == [1, 2, 3]
+
+
+class TestNotImplemented:
+    def test_set(self):
+        @dataclass
+        class TConfig:
+            a: set[int]
+
+        with raises(NotImplementedError):
+            parse(TConfig, ["--a", "1", "1", "2"])
+
+    def test_tuple(self):
+        @dataclass
+        class TConfig:
+            a: tuple[str]
+
+        with raises(NotImplementedError):
+            parse(TConfig, ["--a", "1", "1", "2"])
