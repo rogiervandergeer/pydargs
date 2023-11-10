@@ -1,6 +1,7 @@
+import argparse
 import sys
 from argparse import ArgumentParser
-from dataclasses import fields
+from dataclasses import fields, MISSING
 from typing import (
     Type,
     TypeVar,
@@ -34,9 +35,11 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
     for field in fields(tp):
         if origin := get_origin(field.type):
             if origin is Sequence or origin is list:
+                if field.default is MISSING and field.default_factory is MISSING:
+                    raise NotImplementedError(f"Parsing {tp} without a default is not supported.")
                 parser.add_argument(
                     f"--{field.name.replace('_', '-')}",
-                    default=field.default,
+                    default=argparse.SUPPRESS,
                     dest=field.name,
                     help=f"Override field {field.name}.",
                     nargs="*",
