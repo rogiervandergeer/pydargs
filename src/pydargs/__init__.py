@@ -36,7 +36,7 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
         if origin := get_origin(field.type):
             if origin is Sequence or origin is list:
                 if field.default is MISSING and field.default_factory is MISSING:
-                    raise NotImplementedError(f"Parsing {tp} without a default is not supported.")
+                    raise NotImplementedError(f"Parsing {origin} without a default is not supported.")
                 parser.add_argument(
                     f"--{field.name.replace('_', '-')}",
                     default=argparse.SUPPRESS,
@@ -46,7 +46,7 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
                     type=get_args(field.type)[0],
                 )
             else:
-                raise NotImplementedError(f"Parsing into type {tp} is not implemented.")
+                raise NotImplementedError(f"Parsing into type {origin} is not implemented.")
         else:
             parser.add_argument(
                 f"--{field.name.replace('_', '-')}",
