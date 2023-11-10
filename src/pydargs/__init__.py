@@ -1,7 +1,7 @@
 import sys
-from argparse import ArgumentParser
+from argparse import _ArgumentGroup, ArgumentParser
 from dataclasses import fields
-from typing import Type, TypeVar, Optional, Protocol, ClassVar, Dict
+from typing import Type, TypeVar, Optional, Protocol, ClassVar, Dict, Union
 
 
 class ADataclass(Protocol):
@@ -21,6 +21,10 @@ def parse(tp: Type[Dataclass], args: Optional[list[str]] = None) -> Dataclass:
 
 def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
     parser = ArgumentParser()
+    add_arguments(tp, parser)
+    return parser
+
+def add_arguments(tp: Type[Dataclass], parser: Union[ArgumentParser, _ArgumentGroup]):
     for field in fields(tp):
         if field.type is bool:
             if as_flags := field.metadata.get("as_flags", None):
@@ -55,8 +59,6 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
                 help=f"Override field {field.name}.",
                 type=field.type,
             )
-    return parser
-
 
 def _parse_bool(arg: str) -> bool:
     if arg.lower() == "true" or arg == "1":
@@ -67,3 +69,4 @@ def _parse_bool(arg: str) -> bool:
 
 
 __all__ = ["parse"]
+
