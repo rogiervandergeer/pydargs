@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
+
+[project]
+name = "pydargs"
+authors = [
+    {name = "Anton Steenvoorden", email = "Anton.Steenvoorden@ah.nl"},
+    {name = "Guus Verstegen", email = "gjaverstegen@gmail.com"},
+    {name = "Rogier van der Geer", email = "rogier@vander-geer.nl"},
+]
+description = ""
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "BSD"}
+keywords = [
+    "cli",
+    "dataclass"
+]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Typing :: Typed"
+]
+dependencies = []
+dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = ["mypy==1.6.1", "ruff==0.1.5", "pytest==7.4.3"]
+
+[project.urls]
+Repository = "https://github.com/rogiervandergeer/pydargs"
+
+[tool.setuptools.package-data]
+pydargs = ["py.typed"]
+
+[tool.setuptools_scm]
+write_to = "src/pydargs/_version.py"
+
+[tool.isort]
+profile = "black"
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
