@@ -59,7 +59,7 @@ def _add_arguments(tp: Type[Dataclass], parser: Union[ArgumentParser, _ArgumentG
                 if field.default is MISSING and field.default_factory is MISSING:
                     raise NotImplementedError(f"Parsing {origin} without a default is not supported.")
                 parser.add_argument(
-                    f"--{prefix}{field.name.replace('_', '-')}",
+                    f"--{prefix}{field.name}".replace("_", "-"),
                     default=argparse.SUPPRESS,
                     dest=f"{prefix}{field.name}",
                     help=f"Override field {field.name}.",
@@ -70,7 +70,7 @@ def _add_arguments(tp: Type[Dataclass], parser: Union[ArgumentParser, _ArgumentG
                 raise NotImplementedError(f"Parsing into type {origin} is not implemented.")
         elif field.type in (date, datetime):
             parser.add_argument(
-                f"--{prefix}{field.name.replace('_', '-')}",
+                f"--{prefix}{field.name}".replace("_", "-"),
                 default=argparse.SUPPRESS,
                 dest=f"{prefix}{field.name}",
                 help=f"Override field {field.name}.",
@@ -83,13 +83,13 @@ def _add_arguments(tp: Type[Dataclass], parser: Union[ArgumentParser, _ArgumentG
             if as_flags := field.metadata.get("as_flags", None):
                 if as_flags:
                     parser.add_argument(
-                        f"--{prefix}{field.name.replace('_', '-')}",
+                        f"--{prefix}{field.name}".replace("_", "-"),
                         dest=f"{prefix}{field.name}",
                         help=f"Set {field.name} to True.",
                         action="store_true",
                     )
                     parser.add_argument(
-                        f"--no-{prefix}{field.name.replace('_', '-')}",
+                        f"--no-{prefix}{field.name}".replace("_", "-"),
                         dest=f"{prefix}{field.name}",
                         help=f"Set {field.name} to False.",
                         action="store_false",
@@ -98,7 +98,7 @@ def _add_arguments(tp: Type[Dataclass], parser: Union[ArgumentParser, _ArgumentG
                     raise ValueError(f"Misspecified bool_arg_type: {as_flags}.")
             else:
                 parser.add_argument(
-                    f"--{prefix}{field.name.replace('_', '-')}",
+                    f"--{prefix}{field.name}".replace("_", "-"),
                     default=field.default,
                     dest=f"{prefix}{field.name}",
                     help=f"Override field {field.name}.",
@@ -106,7 +106,7 @@ def _add_arguments(tp: Type[Dataclass], parser: Union[ArgumentParser, _ArgumentG
                 )
         else:
             parser.add_argument(
-                f"--{prefix}{field.name.replace('_', '-')}",
+                f"--{prefix}{field.name}".replace("_", "-"),
                 default=field.default,
                 dest=f"{prefix}{field.name}",
                 help=f"Override field {field.name}.",
