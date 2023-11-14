@@ -3,6 +3,7 @@ import sys
 from argparse import ArgumentParser
 from dataclasses import fields, MISSING
 from datetime import date, datetime
+from enum import Enum
 from functools import partial
 from typing import (
     Type,
@@ -15,6 +16,7 @@ from typing import (
     get_args,
     Sequence,
     Union,
+    Literal,
 )
 
 
@@ -47,6 +49,18 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
                     help=f"Override field {field.name}.",
                     nargs="*",
                     type=get_args(field.type)[0],
+                )
+            elif origin is Literal:
+                if len({type(arg) for arg in get_args(field.type)}) > 1:
+                    raise NotImplementedError("Parsing Literals with mixed types is not supported.")
+                parser.add_argument(
+                    f"--{field.name.replace('_', '-')}",
+                    choices=get_args(field.type),
+                    default=argparse.SUPPRESS,
+                    dest=field.name,
+                    help=f"Override field {field.name}.",
+                    required=field.default is MISSING and field.default_factory is MISSING,
+                    type=type(get_args(field.type)[0]),
                 )
             else:
                 raise NotImplementedError(f"Parsing into type {origin} is not implemented.")
@@ -86,6 +100,17 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
                     help=f"Override field {field.name}.",
                     type=_parse_bool,
                 )
+        elif issubclass(field.type, Enum):
+            parser.add_argument(
+                f"--{field.name.replace('_', '-')}",
+                choices=list(field.type),
+                default=argparse.SUPPRESS,
+                dest=field.name,
+                help=f"Override field {field.name}.",
+                required=field.default is MISSING and field.default_factory is MISSING,
+                type=lambda x: field.type[x],
+            )
+
         else:
             parser.add_argument(
                 f"--{field.name.replace('_', '-')}",
