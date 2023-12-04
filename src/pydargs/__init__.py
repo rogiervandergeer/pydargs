@@ -1,7 +1,7 @@
 import argparse
 import sys
 from argparse import ArgumentParser
-from dataclasses import fields, MISSING
+from dataclasses import MISSING, dataclass, fields
 from datetime import date, datetime
 from enum import Enum
 from functools import partial
@@ -10,8 +10,6 @@ from typing import (
     TypeVar,
     Optional,
     Protocol,
-    ClassVar,
-    Dict,
     get_origin,
     get_args,
     Sequence,
@@ -20,9 +18,9 @@ from typing import (
 )
 
 
+@dataclass
 class ADataclass(Protocol):
-    __dataclass_fields__: ClassVar[Dict]
-    __dataclass_params__: ClassVar[Dict]
+    ...
 
 
 Dataclass = TypeVar("Dataclass", bound=ADataclass)
