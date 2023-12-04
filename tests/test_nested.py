@@ -43,4 +43,4 @@ class TestNested:
         assert config.level1.b == 13
         assert config.level1.level_2.b == 4
         assert config.level1.level_2.c == 20
-        assert config.level1.level_2.level_3.d == ['hi', 'under_score']
+        assert config.level1.level_2.level_3.d == ["hi", "under_score"]
