@@ -106,7 +106,7 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
                 dest=field.name,
                 help=f"Override field {field.name}.",
                 required=field.default is MISSING and field.default_factory is MISSING,
-                type=lambda x: field.type[x],
+                type=field.type.__getitem__,
             )
 
         else:
