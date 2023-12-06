@@ -25,7 +25,6 @@ repos:
         entry: mypy
         language: system
         types: [python]
-        exclude: ^tests/
         args:
           - --install-types
           - --non-interactive
