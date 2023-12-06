@@ -74,22 +74,19 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
                 ),
             )
         elif field.type is bool:
-            if as_flags := field.metadata.get("as_flags", None):
-                if as_flags:
-                    parser.add_argument(
-                        f"--{field.name.replace('_', '-')}",
-                        dest=field.name,
-                        help=f"Set {field.name} to True.",
-                        action="store_true",
-                    )
-                    parser.add_argument(
-                        f"--no-{field.name.replace('_', '-')}",
-                        dest=field.name,
-                        help=f"Set {field.name} to False.",
-                        action="store_false",
-                    )
-                else:
-                    raise ValueError(f"Misspecified bool_arg_type: {as_flags}.")
+            if field.metadata.get("as_flags", False):
+                parser.add_argument(
+                    f"--{field.name.replace('_', '-')}",
+                    dest=field.name,
+                    help=f"Set {field.name} to True.",
+                    action="store_true",
+                )
+                parser.add_argument(
+                    f"--no-{field.name.replace('_', '-')}",
+                    dest=field.name,
+                    help=f"Set {field.name} to False.",
+                    action="store_false",
+                )
             else:
                 parser.add_argument(
                     f"--{field.name.replace('_', '-')}",
