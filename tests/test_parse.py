@@ -147,6 +147,9 @@ class TestParseChoices:
         assert t.an_enum == AnEnum.one
         assert t.another_enum == AnEnum.two
 
+        with raises(SystemExit):
+            parse(TConfig, ["--an-enum", "four"])
+
     def test_str_literal(self):
         @dataclass
         class TConfig:

@@ -106,7 +106,7 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
                 dest=field.name,
                 help=f"Override field {field.name}.",
                 required=field.default is MISSING and field.default_factory is MISSING,
-                type=field.type.__getitem__,
+                type=partial(_get_enum_by_name, enum_type=field.type),  # type: ignore
             )
 
         else:
@@ -126,6 +126,13 @@ def _parse_bool(arg: str) -> bool:
     elif arg.lower() == "false" or arg == "0":
         return False
     raise TypeError(f"Unable to convert {arg} to boolean.")
+
+
+def _get_enum_by_name(name: str, enum_type: Type[Enum]) -> Union[Enum, str]:
+    try:
+        return enum_type[name]
+    except KeyError:
+        return name
 
 
 def _parse_datetime(date_string: str, is_date: bool, date_format: Optional[str] = None) -> Union[date, datetime]:
