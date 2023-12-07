@@ -119,6 +119,9 @@ class TestParseCustomParser:
         t = parse(TConfig, ["--arg", "[1, 2]"])
         assert t.arg == [1, 2]
 
+        t = parse(TConfig, ["--arg", '{"1": 2}'])
+        assert t.arg == {"1": 2}
+
     def test_parser_required(self, capsys):
         @dataclass
         class TConfig:
@@ -131,6 +134,16 @@ class TestParseCustomParser:
 
         t = parse(TConfig, ["--arg", "[1, 2]"])
         assert t.arg == [1, 2]
+
+    def test_parser_invalid(self, capsys):
+        @dataclass
+        class TConfig:
+            arg: list[int] = field(metadata=dict(parser=loads))
+
+        with raises(SystemExit):
+            parse(TConfig, ["--arg", "[1, 2"])
+        captured = capsys.readouterr()
+        assert "argument --arg: invalid loads value: '[1, 2" in captured.err
 
 
 class TestParseChoices:
