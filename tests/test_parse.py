@@ -11,11 +11,11 @@ from pydargs import parse
 @dataclass
 class Config:
     a: int
-    g: bool = field(metadata={"as_flags": True})
     b: str = "abc"
     c: float = 0.1
     d: bool = False
-    f: bool = field(default=True)
+    f: bool = field(default=True, metadata={"as_flags": False})
+    g: bool = field(default=False, metadata={"as_flags": True})
 
 
 class TestParse:
@@ -46,6 +46,26 @@ class TestParseBool:
     def test_bool_1(self):
         c = parse(Config, ["--a", "12", "--f", "1"])
         assert c.f is True
+
+    def test_bool_defaults(self):
+        @dataclass
+        class TConfig:
+            b_false: bool = False
+            b_true: bool = True
+
+        c = parse(TConfig, [])
+        assert c.b_false is False
+        assert c.b_true is True
+
+    def test_bool_defaults_as_flags(self):
+        @dataclass
+        class TConfig:
+            b_false: bool = field(default=False, metadata={"as_flags": True})
+            b_true: bool = field(default=True, metadata={"as_flags": True})
+
+        c = parse(TConfig, [])
+        assert c.b_false is False
+        assert c.b_true is True
 
     def test_bool_lower(self):
         with raises(SystemExit):
