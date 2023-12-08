@@ -18,11 +18,11 @@ from typing import (
     Literal,
 )
 
-UNION_TYPES: list[Any] = [Union]
+UNION_TYPES: set[Any] = {Union}
 if sys.version_info >= (3, 10):
     from types import UnionType
 
-    UNION_TYPES.append(UnionType)
+    UNION_TYPES.add(UnionType)
 
 
 @dataclass
