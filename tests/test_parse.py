@@ -251,19 +251,24 @@ class TestIgnore:
         assert t.b == 5
         assert t.b == 5
 
-    def test_ignore_when_provided(self, capsys):
+    def test_ignore_valid(self):
         @dataclass
         class TConfig:
             a: int = 5
-            b: int = field(default=5, metadata=dict(ignore=True))
-            c: int = field(default=5, metadata=dict(ignore=False))
+            b: str = field(default="something", metadata=dict(ignore=True))
+            c: bool = field(default=False, metadata=dict(ignore=False, as_flags=True))
 
-        t = parse(TConfig, ["--a", "1", "--c", "42"])
+        t = parse(TConfig, ["--a", "1", "--c"])
         assert t.a == 1
-        assert t.b == 5
-        assert t.c == 42
+        assert t.b == "something"
+        assert t.c is True
+
+    def test_ignore_invalid(self, capsys):
+        @dataclass
+        class TConfig:
+            b: str = field(default="something", metadata=dict(ignore=True))
 
         with raises(SystemExit):
-            parse(TConfig, ["--a", "1", "--b", "2"])
+            parse(TConfig, ["--b", "2"])
         captured = capsys.readouterr()
         assert "error: unrecognized arguments: --b 2" in captured.err
