@@ -1,6 +1,6 @@
 # pydargs
 
-Pydargs converts a dataclass to command line arguments in argparse.
+Pydargs allows overriding dataclass properties via auto generated command line arguments using argparse.
 
 ## Installation
 
