@@ -244,9 +244,11 @@ class TestIgnore:
         class TConfig:
             a: int = 5
             b: int = field(default=5, metadata={"ignore": True})
+            c: int = field(default=5, metadata={"ignore": False})
 
-        t = parse(TConfig, ["--a", "1"])
-        assert t.a == 1
+        t = parse(TConfig, [])
+        assert t.a == 5
+        assert t.b == 5
         assert t.b == 5
 
     def test_ignore_when_provided(self, capsys):
@@ -254,6 +256,12 @@ class TestIgnore:
         class TConfig:
             a: int = 5
             b: int = field(default=5, metadata={"ignore": True})
+            c: int = field(default=5, metadata={"ignore": False})
+
+        t = parse(TConfig, ["--a", "1", "--c", "42"])
+        assert t.a == 1
+        assert t.b == 5
+        assert t.c == 42
 
         with raises(SystemExit):
             parse(TConfig, ["--a", "1", "--b", "2"])
