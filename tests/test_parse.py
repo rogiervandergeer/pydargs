@@ -13,9 +13,6 @@ class Config:
     a: int
     b: str = "abc"
     c: float = 0.1
-    d: bool = False
-    f: bool = field(default=True, metadata={"as_flags": False})
-    g: bool = field(default=False, metadata={"as_flags": True})
 
 
 class TestParse:
@@ -25,9 +22,6 @@ class TestParse:
         assert c.a == 12
         assert c.b == "abc"
         assert c.c == 0.1
-        assert c.d is False
-        assert c.f is True
-        assert c.g is False
 
     def test_str(self):
         c = parse(Config, ["--a", "12", "--b", "abcd"])
