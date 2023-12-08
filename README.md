@@ -42,13 +42,15 @@ entrypoint --number 42 --some-string abcd
 
 The base types are supported: `int`, `float`, `str`, `bool`, as well as:
 
-- **enums** or **literals**,
-- **date** and **datetime**, for which an optional `date_format` metadata field can be passed (see below),
-- **lists** of those types, either denoted as e.g. `list[int]` or `typing.Sequence[int]`.
+- **Enums** or **literals** comprised of those types.
+- **Date** and **datetime**, with an optional `date_format` metadata
+  field: `your_date: date = field(metadata=dict(date_format="%m-%d-%Y"))`. When not
+  provided dates in ISO 8601 format are accepted.
+- **Lists** of those types, either denoted as e.g. `list[int]` or `typing.Sequence[int]`.
   Multiple arguments to a `numbers: list[int]` field can be provided as `--numbers 1 2 3`.
-- **optional types**, denoted as e.g. `typing.Optional[int]` or `int | None` (in python 3.10 and above).
-  Any argument passed is assumed to be of the provided type (`int` in this example), and can never result in `None`.
-- **unions of types**, denoted as e.g. `typing.Union[int, str]` or `int | str`. Each argument
+- **Optional types**, denoted as e.g. `typing.Optional[int]` or `int | None` (for Python 3.10 and above).
+  Any argument passed is assumed to be of the provided type and can never be `None`.
+- **Unions of types**, denoted as e.g. `typing.Union[int, str]` or `int | str`. Each argument
   will be parsed into the first type that returns a valid result. Note that this means
-  that `str | int` will _always_ result in a value of type `str`,
-- any other type that can be instantiated from a string, such as `Path`.
+  that `str | int` will _always_ result in a value of type `str`.
+- Any other type that can be instantiated from a string, such as `Path`.
