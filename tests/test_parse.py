@@ -255,8 +255,8 @@ class TestIgnore:
         @dataclass
         class TConfig:
             a: int = 5
-            b: int = field(default=5, metadata={"ignore": True})
-            c: int = field(default=5, metadata={"ignore": False})
+            b: int = field(default=5, metadata=dict(ignore=True))
+            c: int = field(default=5, metadata=dict(ignore=False))
 
         t = parse(TConfig, ["--a", "1", "--c", "42"])
         assert t.a == 1

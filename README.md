@@ -54,3 +54,14 @@ The base types are supported: `int`, `float`, `str`, `bool`, as well as:
   will be parsed into the first type that returns a valid result. Note that this means
   that `str | int` will _always_ result in a value of type `str`.
 - Any other type that can be instantiated from a string, such as `Path`.
+
+## Advanced Usage
+### Ignoring fields
+Fields can be ignored by adding the `ignore` metadata field:
+```python
+@dataclass
+class Config:
+    number: int
+    ignored: str = field(metadata=dict(ignore=True))
+```
+When indicated, this field is not added to the parser and cannot be overridden via the cli.
