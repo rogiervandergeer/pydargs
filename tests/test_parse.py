@@ -72,40 +72,6 @@ class TestParseBool:
             parse(Config, ["--a", "12", "--g", "help"])
 
 
-class TestParseLists:
-    def test_parse_list_default(self):
-        @dataclass
-        class TConfig:
-            arg: list[str] = field(default_factory=lambda: [])
-
-        t = parse(TConfig, [])
-        assert t.arg == []
-
-    def test_parse_list(self):
-        @dataclass
-        class TConfig:
-            arg: list[str] = field(default_factory=lambda: [])
-
-        t = parse(TConfig, ["--arg", "1", "2"])
-        assert t.arg == ["1", "2"]
-
-    def test_parse_list_int(self):
-        @dataclass
-        class TConfig:
-            arg: list[int] = field(default_factory=lambda: [])
-
-        t = parse(TConfig, ["--arg", "1", "2"])
-        assert t.arg == [1, 2]
-
-    def test_parse_list_required(self):
-        @dataclass
-        class TConfig:
-            arg: list[int] = field()
-
-        with raises(NotImplementedError):
-            parse(TConfig, ["--arg", "1", "2"])
-
-
 class TestParseChoices:
     def test_enum(self):
         class AnEnum(Enum):

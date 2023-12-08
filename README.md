@@ -46,8 +46,10 @@ The base types are supported: `int`, `float`, `str`, `bool`, as well as:
 - **Date** and **datetime**, with an optional `date_format` metadata
   field: `your_date: date = field(metadata=dict(date_format="%m-%d-%Y"))`. When not
   provided dates in ISO 8601 format are accepted.
-- **Lists** of those types, either denoted as e.g. `list[int]` or `typing.Sequence[int]`.
+- **Lists** of those types, either denoted as e.g. `list[int]` or `Sequence[int]`.
   Multiple arguments to a `numbers: list[int]` field can be provided as `--numbers 1 2 3`.
+  A list-field without a default will require at least a single value to be provided.
+  If a default is provided, it will be completely replaced by any arguments, if provided.
 - **Optional types**, denoted as e.g. `typing.Optional[int]` or `int | None` (for Python 3.10 and above).
   Any argument passed is assumed to be of the provided type and can never be `None`.
 - **Unions of types**, denoted as e.g. `typing.Union[int, str]` or `int | str`. Each argument
