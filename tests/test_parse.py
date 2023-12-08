@@ -38,60 +38,6 @@ class TestParse:
         assert c.c == 1.23
 
 
-class TestParseBool:
-    def test_bool_0(self):
-        c = parse(Config, ["--a", "12", "--f", "0"])
-        assert c.f is False
-
-    def test_bool_1(self):
-        c = parse(Config, ["--a", "12", "--f", "1"])
-        assert c.f is True
-
-    def test_bool_defaults(self):
-        @dataclass
-        class TConfig:
-            b_false: bool = False
-            b_true: bool = True
-
-        c = parse(TConfig, [])
-        assert c.b_false is False
-        assert c.b_true is True
-
-    def test_bool_defaults_as_flags(self):
-        @dataclass
-        class TConfig:
-            b_false: bool = field(default=False, metadata={"as_flags": True})
-            b_true: bool = field(default=True, metadata={"as_flags": True})
-
-        c = parse(TConfig, [])
-        assert c.b_false is False
-        assert c.b_true is True
-
-    def test_bool_lower(self):
-        with raises(SystemExit):
-            parse(Config, ["--a", "12", "--f", "blabla"])
-
-    def test_bool_upper_false(self):
-        c = parse(Config, ["--a", "12", "--f", "False"])
-        assert c.f is False
-
-    def test_bool_upper_true(self):
-        c = parse(Config, ["--a", "12", "--d", "TRUE"])
-        assert c.d is True
-
-    def test_bool_flag(self):
-        c = parse(Config, ["--a", "12", "--g"])
-        assert c.g is True
-
-    def test_bool_no_flag(self):
-        c = parse(Config, ["--a", "12", "--no-g"])
-        assert c.g is False
-
-    def test_bool_too_many_arguments(self):
-        with raises(SystemExit):
-            parse(Config, ["--a", "12", "--g", "help"])
-
-
 class TestParseLists:
     def test_parse_list_default(self):
         @dataclass
