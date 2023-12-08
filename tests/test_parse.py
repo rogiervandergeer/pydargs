@@ -237,36 +237,28 @@ class TestNotImplemented:
 
 
 class TestIgnore:
-    def test_ignore_default(self):
-        @dataclass
-        class TConfig:
-            a: int = 5
-            b: int = field(default=5, metadata={"ignore": True})
-            c: int = field(default=5, metadata={"ignore": False})
+    @dataclass
+    class Config:
+        a: int = 5
+        b: str = field(default="something", metadata={"ignore": True})
+        c: bool = field(default=False, metadata=dict(ignore=False, as_flags=True))
+        z: str = "dummy-for-late-binding-closure"
 
-        t = parse(TConfig, [])
-        assert t.a == 5
-        assert t.b == 5
-        assert t.b == 5
+    def test_ignore_default(self):
+        config = parse(Config, [])
+        assert config.a == 5
+        assert config.b == 5
+        assert config.c == 5
+        assert config.z == "dummy-for-late-binding-closure"
 
     def test_ignore_valid(self):
-        @dataclass
-        class TConfig:
-            a: int = 5
-            b: str = field(default="something", metadata=dict(ignore=True))
-            c: bool = field(default=False, metadata=dict(ignore=False, as_flags=True))
-
-        t = parse(TConfig, ["--a", "1", "--c"])
-        assert t.a == 1
-        assert t.b == "something"
-        assert t.c is True
+        config = parse(Config, ["--a", "1", "--c"])
+        assert config.a == 1
+        assert config.b == "something"
+        assert config.c is True
 
     def test_ignore_invalid(self, capsys):
-        @dataclass
-        class TConfig:
-            b: str = field(default="something", metadata=dict(ignore=True))
-
         with raises(SystemExit):
-            parse(TConfig, ["--b", "2"])
+            parse(Config, ["--b", "2"])
         captured = capsys.readouterr()
         assert "error: unrecognized arguments: --b 2" in captured.err
