@@ -245,20 +245,20 @@ class TestIgnore:
         z: str = "dummy-for-late-binding-closure"
 
     def test_ignore_default(self):
-        config = parse(Config, [])
+        config = parse(self.Config, [])
         assert config.a == 5
         assert config.b == 5
         assert config.c == 5
         assert config.z == "dummy-for-late-binding-closure"
 
     def test_ignore_valid(self):
-        config = parse(Config, ["--a", "1", "--c"])
+        config = parse(self.Config, ["--a", "1", "--c"])
         assert config.a == 1
         assert config.b == "something"
         assert config.c is True
 
     def test_ignore_invalid(self, capsys):
         with raises(SystemExit):
-            parse(Config, ["--b", "2"])
+            parse(self.Config, ["--b", "2"])
         captured = capsys.readouterr()
         assert "error: unrecognized arguments: --b 2" in captured.err
