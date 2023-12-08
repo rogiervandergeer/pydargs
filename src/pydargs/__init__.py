@@ -43,6 +43,9 @@ def parse(tp: Type[Dataclass], args: Optional[list[str]] = None) -> Dataclass:
 def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
     parser = ArgumentParser()
     for field in fields(tp):
+        if field.metadata.get("ignore", False):
+            continue
+
         if origin := get_origin(field.type):
             if origin is Sequence or origin is list:
                 if field.default is MISSING and field.default_factory is MISSING:

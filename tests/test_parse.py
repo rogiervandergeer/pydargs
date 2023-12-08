@@ -16,6 +16,7 @@ class Config:
     c: float = 0.1
     d: bool = False
     f: bool = field(default=True)
+    h: int = field(default=42, metadata={"ignore": True})
 
 
 class TestParse:
@@ -28,6 +29,7 @@ class TestParse:
         assert c.d is False
         assert c.f is True
         assert c.g is False
+        assert c.h == 42
 
     def test_str(self):
         c = parse(Config, ["--a", "12", "--b", "abcd"])
@@ -234,3 +236,26 @@ class TestNotImplemented:
 
         with raises(NotImplementedError):
             parse(TConfig, ["--a", "1", "1", "2"])
+
+
+class TestIgnore:
+    def test_ignore_default(self):
+        @dataclass
+        class TConfig:
+            a: int = 5
+            b: int = field(default=5, metadata={"ignore": True})
+
+        t = parse(TConfig, ["--a", "1"])
+        assert t.a == 1
+        assert t.b == 5
+
+    def test_ignore_when_provided(self, capsys):
+        @dataclass
+        class TConfig:
+            a: int = 5
+            b: int = field(default=5, metadata={"ignore": True})
+
+        with raises(SystemExit):
+            parse(TConfig, ["--a", "1", "--b", "2"])
+        captured = capsys.readouterr()
+        assert "error: unrecognized arguments: --b 2" in captured.err
