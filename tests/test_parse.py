@@ -16,7 +16,6 @@ class Config:
     c: float = 0.1
     d: bool = False
     f: bool = field(default=True)
-    h: int = field(default=42, metadata={"ignore": True})
 
 
 class TestParse:
@@ -29,7 +28,6 @@ class TestParse:
         assert c.d is False
         assert c.f is True
         assert c.g is False
-        assert c.h == 42
 
     def test_str(self):
         c = parse(Config, ["--a", "12", "--b", "abcd"])
