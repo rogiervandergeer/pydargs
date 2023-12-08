@@ -68,13 +68,15 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
                     type=type(get_args(field.type)[0]),
                 )
             elif origin in UNION_TYPES:
+                union_parser = partial(_parse_union, union_type=field.type)
+                setattr(union_parser, "__name__", repr(field.type))
                 parser.add_argument(
                     f"--{field.name.replace('_', '-')}",
                     default=argparse.SUPPRESS,
                     dest=field.name,
                     help=f"Override field {field.name}.",
                     required=field.default is MISSING and field.default_factory is MISSING,
-                    type=partial(_parse_union, union_type=field.type),
+                    type=union_parser,
                 )
             else:
                 raise NotImplementedError(f"Parsing into type {origin} is not implemented.")

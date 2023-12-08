@@ -33,7 +33,7 @@ class TestUnion:
         with raises(SystemExit):
             parse(self.Config, ["--a", "1", "--b", "2.0"])
         captured = capsys.readouterr()
-        assert "argument --b: invalid functools.partial" in captured.err
+        assert "argument --b: invalid typing.Optional[int] value:" in captured.err
 
     @mark.parametrize("value, result", [("1.0", "1.0"), ("11", 11)])
     def test_parse_union(self, value: str, result: Union[int, str]):
@@ -73,7 +73,7 @@ if version_info >= (3, 10):
             with raises(SystemExit):
                 parse(self.Config, ["--a", "1", "--b", "2.0"])
             captured = capsys.readouterr()
-            assert "argument --b: invalid functools.partial" in captured.err
+            assert "argument --b: invalid int | None value:" in captured.err
 
         @mark.parametrize("value, result", [("1.0", "1.0"), ("11", 11)])
         def test_parse_union(self, value: str, result: Union[int, str]):
