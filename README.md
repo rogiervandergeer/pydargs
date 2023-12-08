@@ -55,13 +55,13 @@ The base types are supported: `int`, `float`, `str`, `bool`, as well as:
   that `str | int` will _always_ result in a value of type `str`.
 - Any other type that can be instantiated from a string, such as `Path`.
 
-### Metadata
+## Metadata
 
 Additional options can be provided to the dataclass field metadata.
 
 The following metadata fields are supported:
 
-#### `as_flags`
+### `as_flags`
 
 Set `as_flags=True` for a boolean field:
 ```python
@@ -75,7 +75,7 @@ which would create the arguments `--verbose` and `--no-verbose` to
 set the value of `verbose` to `True` or `False` respectively, instead
 of a single option that requires a value like `--verbose True`.
 
-#### `parser`
+### `parser`
 
 Provide a custom type converter that parses the argument into the desired type. For example:
 
