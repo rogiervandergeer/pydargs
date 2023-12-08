@@ -43,7 +43,7 @@ def parse(tp: Type[Dataclass], args: Optional[list[str]] = None) -> Dataclass:
 def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
     parser = ArgumentParser()
     for field in fields(tp):
-        if field.metadata.get("ignore", False):
+        if field.metadata.get("ignore_arg", False):
             continue
 
         if origin := get_origin(field.type):

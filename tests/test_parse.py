@@ -236,12 +236,12 @@ class TestNotImplemented:
             parse(TConfig, ["--a", "1", "1", "2"])
 
 
-class TestIgnore:
+class TestIgnoreArg:
     @dataclass
     class Config:
         a: int = 5
-        b: str = field(default="something", metadata={"ignore": True})
-        c: bool = field(default=False, metadata=dict(ignore=False, as_flags=True))
+        b: str = field(default="something", metadata={"ignore_arg": True})
+        c: bool = field(default=False, metadata=dict(ignore_arg=False, as_flags=True))
         z: str = "dummy-for-late-binding-closure"
 
     def test_ignore_default(self):
