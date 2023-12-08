@@ -65,4 +65,4 @@ class Config:
     number: int
     ignored: str = field(metadata=dict(ignore_arg=True))
 ```
-When indicated, this field is not added to the parser and cannot be overridden via the cli.
+When indicated, this field is not added to the parser and cannot be overridden with an argument.
