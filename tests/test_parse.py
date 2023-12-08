@@ -247,7 +247,7 @@ class TestIgnore:
     def test_ignore_default(self):
         config = parse(self.Config, [])
         assert config.a == 5
-        assert config.b == 5
+        assert config.b == "something"
         assert config.c == 5
         assert config.z == "dummy-for-late-binding-closure"
 
