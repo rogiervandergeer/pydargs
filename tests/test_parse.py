@@ -248,7 +248,7 @@ class TestIgnoreArg:
         config = parse(self.Config, [])
         assert config.a == 5
         assert config.b == "something"
-        assert config.c == 5
+        assert config.c is False
         assert config.z == "dummy-for-late-binding-closure"
 
     def test_ignore_valid(self):
@@ -262,3 +262,12 @@ class TestIgnoreArg:
             parse(self.Config, ["--b", "2"])
         captured = capsys.readouterr()
         assert "error: unrecognized arguments: --b 2" in captured.err
+
+    def test_ignore_invalid_no_default(self, capsys):
+        @dataclass
+        class TConfig:
+            a: str = field(metadata={"ignore_arg": True})
+            b: int = 5
+
+        with raises(TypeError):
+            parse(TConfig, [])
