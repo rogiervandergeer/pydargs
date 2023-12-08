@@ -242,14 +242,14 @@ class TestIgnoreArg:
         a: int = 5
         b: str = field(default="something", metadata={"ignore_arg": True})
         c: bool = field(default=False, metadata=dict(ignore_arg=False, as_flags=True))
-        z: str = "dummy-for-late-binding-closure"
+        z: str = "dummy"
 
     def test_ignore_default(self):
         config = parse(self.Config, [])
         assert config.a == 5
         assert config.b == "something"
         assert config.c is False
-        assert config.z == "dummy-for-late-binding-closure"
+        assert config.z == "dummy"
 
     def test_ignore_valid(self):
         config = parse(self.Config, ["--a", "1", "--c"])
