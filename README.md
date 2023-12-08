@@ -68,7 +68,7 @@ from json import loads
 
 @dataclass
 class Config:
-  list_of_numbers: list[int] = field(dmetadata=dict(parser=loads))
+  list_of_numbers: list[int] = field(metadata=dict(parser=loads))
 ```
 
 This would parse `--list-of-numbers [1, 2, 3]` into the list `[1, 2, 3]`. Note that the error message returned
