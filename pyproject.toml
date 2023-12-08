@@ -33,6 +33,9 @@ dev = ["mypy==1.6.1", "pre-commit==3.5.0", "ruff==0.1.5", "pytest==7.4.3"]
 [project.urls]
 Repository = "https://github.com/rogiervandergeer/pydargs"
 
+[tool.mypy]
+python_version = "3.10"
+
 [tool.setuptools.package-data]
 pydargs = ["py.typed"]
 

@@ -6,6 +6,7 @@ from datetime import date, datetime
 from enum import Enum
 from functools import partial
 from typing import (
+    Any,
     Type,
     TypeVar,
     Optional,
@@ -16,6 +17,12 @@ from typing import (
     Union,
     Literal,
 )
+
+UNION_TYPES: set[Any] = {Union}
+if sys.version_info >= (3, 10):
+    from types import UnionType
+
+    UNION_TYPES.add(UnionType)
 
 
 @dataclass
@@ -68,6 +75,17 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
                     help=f"Override field {field.name}.",
                     required=field.default is MISSING and field.default_factory is MISSING,
                     type=type(get_args(field.type)[0]),
+                )
+            elif origin in UNION_TYPES:
+                union_parser = partial(_parse_union, union_type=field.type)
+                setattr(union_parser, "__name__", repr(field.type))
+                parser.add_argument(
+                    f"--{field.name.replace('_', '-')}",
+                    default=argparse.SUPPRESS,
+                    dest=field.name,
+                    help=f"Override field {field.name}.",
+                    required=field.default is MISSING and field.default_factory is MISSING,
+                    type=union_parser,
                 )
             else:
                 raise NotImplementedError(f"Parsing into type {origin} is not implemented.")
@@ -137,6 +155,17 @@ def _parse_bool(arg: str) -> bool:
 def _parse_datetime(date_string: str, is_date: bool, date_format: Optional[str] = None) -> Union[date, datetime]:
     result = datetime.strptime(date_string, date_format) if date_format else datetime.fromisoformat(date_string)
     return result.date() if is_date else result
+
+
+def _parse_union(value: str, union_type: Type) -> Any:
+    for arg in get_args(union_type):
+        if isinstance(None, arg):
+            continue
+        try:
+            return arg(value)
+        except ValueError:
+            continue
+    raise ValueError(f"Unable to parse '{value}' as one of {union_type}")
 
 
 __all__ = ["parse"]
