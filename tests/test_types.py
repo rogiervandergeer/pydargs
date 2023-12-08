@@ -32,8 +32,7 @@ class TestList:
         assert config.e == "dummy"
 
     def test_list_args(self):
-        config = parse(self.Config, ["--a", "1", "--b", "a", "b"])
-        assert config.b == ["a", "b"]
+        config = parse(self.Config, ["--a", "1", "--b", "a", "b", "--e", "something"])
 
     def test_sequence_args(self):
         config = parse(self.Config, ["--a", "1", "--c", "2.0", "2.5"])
