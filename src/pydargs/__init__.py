@@ -48,7 +48,7 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
                 required = field.default is MISSING and field.default_factory is MISSING
                 parser.add_argument(
                     f"--{field.name.replace('_', '-')}",
-                    default=[] if required else argparse.SUPPRESS,
+                    default=argparse.SUPPRESS,
                     dest=field.name,
                     help=f"Override field {field.name}.",
                     nargs="+" if required else "*",
