@@ -57,11 +57,11 @@ The base types are supported: `int`, `float`, `str`, `bool`, as well as:
 
 ## Advanced Usage
 ### Ignoring fields
-Fields can be ignored by adding the `ignore` metadata field:
+Fields can be ignored by adding the `ignore_arg` metadata field:
 ```python
 @dataclass
 class Config:
     number: int
-    ignored: str = field(metadata=dict(ignore=True))
+    ignored: str = field(metadata=dict(ignore_arg=True))
 ```
 When indicated, this field is not added to the parser and cannot be overridden via the cli.
