@@ -161,7 +161,7 @@ def _add_arguments(tp: Type[Dataclass], parser: Union[ArgumentParser, _ArgumentG
                 f"--{prefix}{field.name}".replace("_", "-"),
                 choices=list(field.type),
                 default=argparse.SUPPRESS,
-                dest=f"--{prefix}{field.name}".replace("_", "-"),
+                dest=f"{prefix}{field.name}",
                 help=f"Override field {field.name}.",
                 required=field.default is MISSING and field.default_factory is MISSING,
                 type=lambda x: field.type[x],
