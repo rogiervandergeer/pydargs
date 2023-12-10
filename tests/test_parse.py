@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import date, datetime
+from enum import Enum
+from typing import Literal
 
 from pytest import raises
 
@@ -104,6 +106,82 @@ class TestParseLists:
             parse(TConfig, ["--arg", "1", "2"])
 
 
+class TestParseChoices:
+    def test_enum(self):
+        class AnEnum(Enum):
+            one = 1
+            two = 2
+            three = 3
+
+        @dataclass
+        class TConfig:
+            an_enum: AnEnum
+
+        with raises(SystemExit):
+            parse(TConfig, [])
+
+        t = parse(TConfig, ["--an-enum", "one"])
+        assert t.an_enum == AnEnum.one
+
+    def test_str_enum(self):
+        class AnEnum(str, Enum):
+            one = "one"
+            two = "two"
+            three = "three"
+
+        @dataclass
+        class TConfig:
+            an_enum: AnEnum
+            another_enum: AnEnum = AnEnum.three
+
+        with raises(SystemExit):
+            parse(TConfig, [])
+
+        t = parse(TConfig, ["--an-enum", "one"])
+        assert t.an_enum == AnEnum.one
+        assert t.another_enum == AnEnum.three
+
+        t = parse(TConfig, ["--an-enum", "one", "--another-enum", "two"])
+        assert t.an_enum == AnEnum.one
+        assert t.another_enum == AnEnum.two
+
+    def test_str_literal(self):
+        @dataclass
+        class TConfig:
+            a_literal: Literal["x", "y"] = "x"
+
+        t = parse(TConfig, [])
+        assert t.a_literal == "x"
+
+        t = parse(TConfig, ["--a-literal", "y"])
+        assert t.a_literal == "y"
+
+        with raises(SystemExit):
+            parse(TConfig, ["--a-literal", "z"])
+
+    def test_int_literal(self):
+        @dataclass
+        class TConfig:
+            a_literal: Literal[1, 2] = 1
+
+        t = parse(TConfig, [])
+        assert t.a_literal == 1
+
+        t = parse(TConfig, ["--a-literal", "2"])
+        assert t.a_literal == 2
+
+        with raises(SystemExit):
+            parse(TConfig, ["--a-literal", "3"])
+
+    def test_fail_mixed_types(self):
+        @dataclass
+        class TConfig:
+            a_literal: Literal[1, "2"] = 1
+
+        with raises(NotImplementedError):
+            parse(TConfig, [])
+
+
 class TestParseDateTime:
     def test_required(self):
         @dataclass
@@ -156,3 +234,40 @@ class TestNotImplemented:
 
         with raises(NotImplementedError):
             parse(TConfig, ["--a", "1", "1", "2"])
+
+
+class TestIgnoreArg:
+    @dataclass
+    class Config:
+        a: int = 5
+        b: str = field(default="something", metadata={"ignore_arg": True})
+        c: bool = field(default=False, metadata=dict(ignore_arg=False, as_flags=True))
+        z: str = "dummy"
+
+    def test_ignore_default(self):
+        config = parse(self.Config, [])
+        assert config.a == 5
+        assert config.b == "something"
+        assert config.c is False
+        assert config.z == "dummy"
+
+    def test_ignore_valid(self):
+        config = parse(self.Config, ["--a", "1", "--c"])
+        assert config.a == 1
+        assert config.b == "something"
+        assert config.c is True
+
+    def test_ignore_invalid(self, capsys):
+        with raises(SystemExit):
+            parse(self.Config, ["--b", "2"])
+        captured = capsys.readouterr()
+        assert "error: unrecognized arguments: --b 2" in captured.err
+
+    def test_ignore_invalid_no_default(self, capsys):
+        @dataclass
+        class TConfig:
+            a: str = field(metadata={"ignore_arg": True})
+            b: int = 5
+
+        with raises(TypeError):
+            parse(TConfig, [])

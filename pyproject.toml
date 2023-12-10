@@ -8,7 +8,7 @@ authors = [
     {name = "Guus Verstegen", email = "gjaverstegen@gmail.com"},
     {name = "Rogier van der Geer", email = "rogier@vander-geer.nl"},
 ]
-description = ""
+description = "Pydargs allows configuring a dataclass through command line arguments."
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "BSD"}
@@ -32,6 +32,9 @@ dev = ["mypy==1.6.1", "pre-commit==3.5.0", "ruff==0.1.5", "pytest==7.4.3"]
 
 [project.urls]
 Repository = "https://github.com/rogiervandergeer/pydargs"
+
+[tool.mypy]
+python_version = "3.10"
 
 [tool.setuptools.package-data]
 pydargs = ["py.typed"]

@@ -1,8 +1,9 @@
 import argparse
 import sys
 from argparse import _ArgumentGroup, ArgumentParser
-from dataclasses import fields, MISSING, is_dataclass
+from dataclasses import MISSING, dataclass, fields, is_dataclass
 from datetime import date, datetime
+from enum import Enum
 from functools import partial
 from typing import (
     Any,
@@ -10,18 +11,23 @@ from typing import (
     TypeVar,
     Optional,
     Protocol,
-    ClassVar,
-    Dict,
     get_origin,
     get_args,
     Sequence,
     Union,
+    Literal,
 )
 
+UNION_TYPES: set[Any] = {Union}
+if sys.version_info >= (3, 10):
+    from types import UnionType
 
+    UNION_TYPES.add(UnionType)
+
+
+@dataclass
 class ADataclass(Protocol):
-    __dataclass_fields__: ClassVar[Dict]
-    __dataclass_params__: ClassVar[Dict]
+    ...
 
 
 Dataclass = TypeVar("Dataclass", bound=ADataclass)
@@ -52,6 +58,9 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
 
 def _add_arguments(tp: Type[Dataclass], parser: Union[ArgumentParser, _ArgumentGroup], prefix: str = ""):
     for field in fields(tp):
+        if field.metadata.get("ignore_arg", False):
+            continue
+
         if is_dataclass(field.type):
             _add_arguments(field.type, parser.add_argument_group(field.name), prefix=f"{prefix}{field.name}-")  # type: ignore
         if origin := get_origin(field.type):
@@ -65,6 +74,52 @@ def _add_arguments(tp: Type[Dataclass], parser: Union[ArgumentParser, _ArgumentG
                     help=f"Override field {field.name}.",
                     nargs="*",
                     type=get_args(field.type)[0],
+                )
+            elif origin is Literal:
+                if len({type(arg) for arg in get_args(field.type)}) > 1:
+                    raise NotImplementedError("Parsing Literals with mixed types is not supported.")
+                parser.add_argument(
+                    f"--{field.name.replace('_', '-')}",
+                    choices=get_args(field.type),
+                    default=argparse.SUPPRESS,
+                    dest=field.name,
+                    help=f"Override field {field.name}.",
+                    required=field.default is MISSING and field.default_factory is MISSING,
+                    type=type(get_args(field.type)[0]),
+                )
+            elif origin in UNION_TYPES:
+                union_parser = partial(_parse_union, union_type=field.type)
+                setattr(union_parser, "__name__", repr(field.type))
+                parser.add_argument(
+                    f"--{prefix}{field.name}".replace("_", "-"),
+                    default=argparse.SUPPRESS,
+                    dest=f"{prefix}{field.name}",
+                    help=f"Override field {field.name}.",
+                    required=field.default is MISSING and field.default_factory is MISSING,
+                    type=union_parser,
+                )
+            elif origin is Literal:
+                if len({type(arg) for arg in get_args(field.type)}) > 1:
+                    raise NotImplementedError("Parsing Literals with mixed types is not supported.")
+                parser.add_argument(
+                    f"--{field.name.replace('_', '-')}",
+                    choices=get_args(field.type),
+                    default=argparse.SUPPRESS,
+                    dest=field.name,
+                    help=f"Override field {field.name}.",
+                    required=field.default is MISSING and field.default_factory is MISSING,
+                    type=type(get_args(field.type)[0]),
+                )
+            elif origin in UNION_TYPES:
+                union_parser = partial(_parse_union, union_type=field.type)
+                setattr(union_parser, "__name__", repr(field.type))
+                parser.add_argument(
+                    f"--{field.name.replace('_', '-')}",
+                    default=argparse.SUPPRESS,
+                    dest=field.name,
+                    help=f"Override field {field.name}.",
+                    required=field.default is MISSING and field.default_factory is MISSING,
+                    type=union_parser,
                 )
             else:
                 raise NotImplementedError(f"Parsing into type {origin} is not implemented.")
@@ -80,22 +135,19 @@ def _add_arguments(tp: Type[Dataclass], parser: Union[ArgumentParser, _ArgumentG
                 ),
             )
         elif field.type is bool:
-            if as_flags := field.metadata.get("as_flags", None):
-                if as_flags:
-                    parser.add_argument(
-                        f"--{prefix}{field.name}".replace("_", "-"),
-                        dest=f"{prefix}{field.name}",
-                        help=f"Set {field.name} to True.",
-                        action="store_true",
-                    )
-                    parser.add_argument(
-                        f"--no-{prefix}{field.name}".replace("_", "-"),
-                        dest=f"{prefix}{field.name}",
-                        help=f"Set {field.name} to False.",
-                        action="store_false",
-                    )
-                else:
-                    raise ValueError(f"Misspecified bool_arg_type: {as_flags}.")
+            if field.metadata.get("as_flags", False):
+                parser.add_argument(
+                    f"--{prefix}{field.name}".replace("_", "-"),
+                    dest=f"{prefix}{field.name}",
+                    help=f"Set {field.name} to True.",
+                    action="store_true",
+                )
+                parser.add_argument(
+                    f"--no-{prefix}{field.name}".replace("_", "-"),
+                    dest=f"{prefix}{field.name}",
+                    help=f"Set {field.name} to False.",
+                    action="store_false",
+                )
             else:
                 parser.add_argument(
                     f"--{prefix}{field.name}".replace("_", "-"),
@@ -104,6 +156,17 @@ def _add_arguments(tp: Type[Dataclass], parser: Union[ArgumentParser, _ArgumentG
                     help=f"Override field {field.name}.",
                     type=_parse_bool,
                 )
+        elif issubclass(field.type, Enum):
+            parser.add_argument(
+                f"--{prefix}{field.name}".replace("_", "-"),
+                choices=list(field.type),
+                default=argparse.SUPPRESS,
+                dest=f"--{prefix}{field.name}".replace("_", "-"),
+                help=f"Override field {field.name}.",
+                required=field.default is MISSING and field.default_factory is MISSING,
+                type=lambda x: field.type[x],
+            )
+
         else:
             parser.add_argument(
                 f"--{prefix}{field.name}".replace("_", "-"),
@@ -125,6 +188,17 @@ def _parse_bool(arg: str) -> bool:
 def _parse_datetime(date_string: str, is_date: bool, date_format: Optional[str] = None) -> Union[date, datetime]:
     result = datetime.strptime(date_string, date_format) if date_format else datetime.fromisoformat(date_string)
     return result.date() if is_date else result
+
+
+def _parse_union(value: str, union_type: Type) -> Any:
+    for arg in get_args(union_type):
+        if isinstance(None, arg):
+            continue
+        try:
+            return arg(value)
+        except ValueError:
+            continue
+    raise ValueError(f"Unable to parse '{value}' as one of {union_type}")
 
 
 __all__ = ["parse"]
