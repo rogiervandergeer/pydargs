@@ -32,38 +32,38 @@ class TestParse:
         assert c.c == 1.23
 
 
-class TestParseLists:
-    def test_parse_list_default(self):
-        @dataclass
-        class TConfig:
-            arg: list[str] = field(default_factory=lambda: [])
+class TestParseBool:
+    def test_bool_0(self):
+        c = parse(Config, ["--a", "12", "--f", "0"])
+        assert c.f is False
 
-        t = parse(TConfig, [])
-        assert t.arg == []
+    def test_bool_1(self):
+        c = parse(Config, ["--a", "12", "--f", "1"])
+        assert c.f is True
 
-    def test_parse_list(self):
-        @dataclass
-        class TConfig:
-            arg: list[str] = field(default_factory=lambda: [])
+    def test_bool_lower(self):
+        with raises(SystemExit):
+            parse(Config, ["--a", "12", "--f", "blabla"])
 
-        t = parse(TConfig, ["--arg", "1", "2"])
-        assert t.arg == ["1", "2"]
+    def test_bool_upper_false(self):
+        c = parse(Config, ["--a", "12", "--f", "False"])
+        assert c.f is False
 
-    def test_parse_list_int(self):
-        @dataclass
-        class TConfig:
-            arg: list[int] = field(default_factory=lambda: [])
+    def test_bool_upper_true(self):
+        c = parse(Config, ["--a", "12", "--d", "TRUE"])
+        assert c.d is True
 
-        t = parse(TConfig, ["--arg", "1", "2"])
-        assert t.arg == [1, 2]
+    def test_bool_flag(self):
+        c = parse(Config, ["--a", "12", "--g"])
+        assert c.g is True
 
-    def test_parse_list_required(self):
-        @dataclass
-        class TConfig:
-            arg: list[int] = field()
+    def test_bool_no_flag(self):
+        c = parse(Config, ["--a", "12", "--no-g"])
+        assert c.g is False
 
-        with raises(NotImplementedError):
-            parse(TConfig, ["--arg", "1", "2"])
+    def test_bool_too_many_arguments(self):
+        with raises(SystemExit):
+            parse(Config, ["--a", "12", "--g", "help"])
 
 
 class TestParseChoices:
@@ -194,3 +194,40 @@ class TestNotImplemented:
 
         with raises(NotImplementedError):
             parse(TConfig, ["--a", "1", "1", "2"])
+
+
+class TestIgnoreArg:
+    @dataclass
+    class Config:
+        a: int = 5
+        b: str = field(default="something", metadata={"ignore_arg": True})
+        c: bool = field(default=False, metadata=dict(ignore_arg=False, as_flags=True))
+        z: str = "dummy"
+
+    def test_ignore_default(self):
+        config = parse(self.Config, [])
+        assert config.a == 5
+        assert config.b == "something"
+        assert config.c is False
+        assert config.z == "dummy"
+
+    def test_ignore_valid(self):
+        config = parse(self.Config, ["--a", "1", "--c"])
+        assert config.a == 1
+        assert config.b == "something"
+        assert config.c is True
+
+    def test_ignore_invalid(self, capsys):
+        with raises(SystemExit):
+            parse(self.Config, ["--b", "2"])
+        captured = capsys.readouterr()
+        assert "error: unrecognized arguments: --b 2" in captured.err
+
+    def test_ignore_invalid_no_default(self, capsys):
+        @dataclass
+        class TConfig:
+            a: str = field(metadata={"ignore_arg": True})
+            b: int = 5
+
+        with raises(TypeError):
+            parse(TConfig, [])

@@ -8,7 +8,7 @@ authors = [
     {name = "Guus Verstegen", email = "gjaverstegen@gmail.com"},
     {name = "Rogier van der Geer", email = "rogier@vander-geer.nl"},
 ]
-description = ""
+description = "Pydargs allows configuring a dataclass through command line arguments."
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "BSD"}
