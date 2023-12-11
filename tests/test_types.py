@@ -8,6 +8,40 @@ from pytest import mark, raises
 from pydargs import parse
 
 
+class TestBase:
+    @dataclass
+    class Config:
+        a: int
+        b: str
+        c: float = 1.0
+        d: int = 4
+        e: str = "e"
+        f: int = field(default_factory=lambda: 1)
+
+    def test_a_required(self, capsys):
+        with raises(SystemExit):
+            parse(self.Config, [])
+        captured = capsys.readouterr()
+        assert "the following arguments are required: --a, --b" in captured.err
+
+    def test_default(self):
+        config = parse(self.Config, ["--a", "1", "--b", "b"])
+        assert config.a == 1
+        assert config.b == "b"
+        assert config.c == 1.0
+        assert config.d == 4
+        assert config.e == "e"
+        assert config.f == 1
+
+    @mark.parametrize(
+        "args, attr, value",
+        [(["--c", "1.23"], "c", 1.23), (["--d", "123"], "d", 123), (["--e", "f"], "e", "f"), (["--f", "2"], "f", 2)],
+    )
+    def test_args(self, args, attr, value):
+        config = parse(self.Config, ["--a", "1", "--b", "b"] + args)
+        assert getattr(config, attr) == value
+
+
 class TestList:
     @dataclass
     class Config:
