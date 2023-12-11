@@ -58,6 +58,7 @@ class TestParseChoices:
         @dataclass
         class TConfig:
             an_enum: AnEnum
+            a_string: str = "a_string"
 
         with raises(SystemExit):
             parse(TConfig, [])
@@ -66,7 +67,7 @@ class TestParseChoices:
         assert t.an_enum == AnEnum.one
 
     def test_str_enum(self):
-        class AnEnum(str, Enum):
+        class AnEnum(Enum):
             one = "one"
             two = "two"
             three = "three"
@@ -75,6 +76,7 @@ class TestParseChoices:
         class TConfig:
             an_enum: AnEnum
             another_enum: AnEnum = AnEnum.three
+            an_int: int = 5
 
         with raises(SystemExit):
             parse(TConfig, [])
@@ -86,6 +88,9 @@ class TestParseChoices:
         t = parse(TConfig, ["--an-enum", "one", "--another-enum", "two"])
         assert t.an_enum == AnEnum.one
         assert t.another_enum == AnEnum.two
+
+        with raises(SystemExit):
+            parse(TConfig, ["--an-enum", "four"])
 
     def test_str_literal(self):
         @dataclass
