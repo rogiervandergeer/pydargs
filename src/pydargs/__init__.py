@@ -46,7 +46,16 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
         if field.metadata.get("ignore_arg", False):
             continue
 
-        if origin := get_origin(field.type):
+        if parser_fct := field.metadata.get("parser", None):
+            parser.add_argument(
+                f"--{field.name.replace('_', '-')}",
+                default=argparse.SUPPRESS,
+                dest=field.name,
+                help=f"Override field {field.name}.",
+                required=field.default is MISSING and field.default_factory is MISSING,
+                type=parser_fct,
+            )
+        elif origin := get_origin(field.type):
             if origin is Sequence or origin is list:
                 required = field.default is MISSING and field.default_factory is MISSING
                 parser.add_argument(
