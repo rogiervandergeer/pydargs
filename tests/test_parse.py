@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from enum import Enum
-from typing import Literal
+from json import loads
+from typing import Literal, Optional
 
 from pytest import raises
 
@@ -30,6 +31,45 @@ class TestParse:
     def test_float(self):
         c = parse(Config, ["--a", "12", "--c", "1.23"])
         assert c.c == 1.23
+
+
+class TestParseCustomParser:
+    def test_parser_optional(self):
+        @dataclass
+        class TConfig:
+            arg: Optional[list[int]] = field(default=None, metadata=dict(parser=loads))
+
+        t = parse(TConfig, [])
+        assert t.arg is None
+
+        t = parse(TConfig, ["--arg", "[1, 2]"])
+        assert t.arg == [1, 2]
+
+        t = parse(TConfig, ["--arg", '{"1": 2}'])
+        assert t.arg == {"1": 2}
+
+    def test_parser_required(self, capsys):
+        @dataclass
+        class TConfig:
+            arg: list[int] = field(metadata=dict(parser=loads))
+
+        with raises(SystemExit):
+            parse(TConfig, [])
+        captured = capsys.readouterr()
+        assert "the following arguments are required: --arg" in captured.err
+
+        t = parse(TConfig, ["--arg", "[1, 2]"])
+        assert t.arg == [1, 2]
+
+    def test_parser_invalid(self, capsys):
+        @dataclass
+        class TConfig:
+            arg: list[int] = field(metadata=dict(parser=loads))
+
+        with raises(SystemExit):
+            parse(TConfig, ["--arg", "[1, 2"])
+        captured = capsys.readouterr()
+        assert "argument --arg: invalid loads value: '[1, 2" in captured.err
 
 
 class TestParseChoices:
