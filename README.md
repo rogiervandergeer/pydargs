@@ -1,6 +1,6 @@
 # pydargs
 
-Pydargs converts a dataclass to command line arguments in argparse.
+Pydargs allows configuring a dataclass through command line arguments.
 
 ## Installation
 
@@ -46,8 +46,10 @@ The base types are supported: `int`, `float`, `str`, `bool`, as well as:
 - **Date** and **datetime**, with an optional `date_format` metadata
   field: `your_date: date = field(metadata=dict(date_format="%m-%d-%Y"))`. When not
   provided dates in ISO 8601 format are accepted.
-- **Lists** of those types, either denoted as e.g. `list[int]` or `typing.Sequence[int]`.
+- **Lists** of those types, either denoted as e.g. `list[int]` or `Sequence[int]`.
   Multiple arguments to a `numbers: list[int]` field can be provided as `--numbers 1 2 3`.
+  A list-field without a default will require at least a single value to be provided.
+  If a default is provided, it will be completely replaced by any arguments, if provided.
 - **Optional types**, denoted as e.g. `typing.Optional[int]` or `int | None` (for Python 3.10 and above).
   Any argument passed is assumed to be of the provided type and can never be `None`.
 - **Unions of types**, denoted as e.g. `typing.Union[int, str]` or `int | str`. Each argument
@@ -92,3 +94,14 @@ This would parse `--list-of-numbers [1, 2, 3]` into the list `[1, 2, 3]`. Note t
 when providing invalid input is lacking any details. Also, no validation is performed to verify that the returned
 type matches the field type. In the above example, `--list-of-numbers '{"a": "b"}'` would result in `list_of_numbers`
 being the dictionary `{"a": "b"}` without any kind of warning.
+
+### Ignoring fields
+Fields can be ignored by adding the `ignore_arg` metadata field:
+
+```python
+@dataclass
+class Config:
+    number: int
+    ignored: str = field(metadata=dict(ignore_arg=True))
+```
+When indicated, this field is not added to the parser and cannot be overridden with an argument.

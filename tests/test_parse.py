@@ -73,40 +73,6 @@ class TestParseBool:
             parse(Config, ["--a", "12", "--g", "help"])
 
 
-class TestParseLists:
-    def test_parse_list_default(self):
-        @dataclass
-        class TConfig:
-            arg: list[str] = field(default_factory=lambda: [])
-
-        t = parse(TConfig, [])
-        assert t.arg == []
-
-    def test_parse_list(self):
-        @dataclass
-        class TConfig:
-            arg: list[str] = field(default_factory=lambda: [])
-
-        t = parse(TConfig, ["--arg", "1", "2"])
-        assert t.arg == ["1", "2"]
-
-    def test_parse_list_int(self):
-        @dataclass
-        class TConfig:
-            arg: list[int] = field(default_factory=lambda: [])
-
-        t = parse(TConfig, ["--arg", "1", "2"])
-        assert t.arg == [1, 2]
-
-    def test_parse_list_required(self):
-        @dataclass
-        class TConfig:
-            arg: list[int] = field()
-
-        with raises(NotImplementedError):
-            parse(TConfig, ["--arg", "1", "2"])
-
-
 class TestParseCustomParser:
     def test_parser_optional(self):
         @dataclass
@@ -274,3 +240,40 @@ class TestNotImplemented:
 
         with raises(NotImplementedError):
             parse(TConfig, ["--a", "1", "1", "2"])
+
+
+class TestIgnoreArg:
+    @dataclass
+    class Config:
+        a: int = 5
+        b: str = field(default="something", metadata={"ignore_arg": True})
+        c: bool = field(default=False, metadata=dict(ignore_arg=False, as_flags=True))
+        z: str = "dummy"
+
+    def test_ignore_default(self):
+        config = parse(self.Config, [])
+        assert config.a == 5
+        assert config.b == "something"
+        assert config.c is False
+        assert config.z == "dummy"
+
+    def test_ignore_valid(self):
+        config = parse(self.Config, ["--a", "1", "--c"])
+        assert config.a == 1
+        assert config.b == "something"
+        assert config.c is True
+
+    def test_ignore_invalid(self, capsys):
+        with raises(SystemExit):
+            parse(self.Config, ["--b", "2"])
+        captured = capsys.readouterr()
+        assert "error: unrecognized arguments: --b 2" in captured.err
+
+    def test_ignore_invalid_no_default(self, capsys):
+        @dataclass
+        class TConfig:
+            a: str = field(metadata={"ignore_arg": True})
+            b: int = 5
+
+        with raises(TypeError):
+            parse(TConfig, [])

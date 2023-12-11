@@ -1,6 +1,7 @@
 import argparse
 import sys
 from argparse import ArgumentParser
+from collections.abc import Sequence
 from dataclasses import MISSING, dataclass, fields
 from datetime import date, datetime
 from enum import Enum
@@ -13,7 +14,6 @@ from typing import (
     Protocol,
     get_origin,
     get_args,
-    Sequence,
     Union,
     Literal,
 )
@@ -43,6 +43,9 @@ def parse(tp: Type[Dataclass], args: Optional[list[str]] = None) -> Dataclass:
 def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
     parser = ArgumentParser()
     for field in fields(tp):
+        if field.metadata.get("ignore_arg", False):
+            continue
+
         if parser_fct := field.metadata.get("parser", None):
             parser.add_argument(
                 f"--{field.name.replace('_', '-')}",
@@ -54,14 +57,14 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
             )
         elif origin := get_origin(field.type):
             if origin is Sequence or origin is list:
-                if field.default is MISSING and field.default_factory is MISSING:
-                    raise NotImplementedError(f"Parsing {origin} without a default is not supported.")
+                required = field.default is MISSING and field.default_factory is MISSING
                 parser.add_argument(
                     f"--{field.name.replace('_', '-')}",
                     default=argparse.SUPPRESS,
                     dest=field.name,
                     help=f"Override field {field.name}.",
-                    nargs="*",
+                    nargs="+" if required else "*",
+                    required=required,
                     type=get_args(field.type)[0],
                 )
             elif origin is Literal:

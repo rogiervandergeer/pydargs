@@ -1,10 +1,53 @@
-from dataclasses import dataclass
+from collections.abc import Sequence
+from dataclasses import dataclass, field
 from sys import version_info
 from typing import Optional, Union
 
 from pytest import mark, raises
 
 from pydargs import parse
+
+
+class TestList:
+    @dataclass
+    class Config:
+        a: list[int]
+        b: list[str] = field(default_factory=lambda: [])
+        c: Sequence[float] = field(default_factory=lambda: [1.0])
+        d: Sequence[str] = ("a", "b")
+        e: str = "dummy"
+
+    def test_a_required(self, capsys):
+        with raises(SystemExit):
+            parse(self.Config, [])
+        captured = capsys.readouterr()
+        assert "the following arguments are required: --a" in captured.err
+
+    def test_default(self):
+        config = parse(self.Config, ["--a", "1"])
+        assert config.a == [1]
+        assert config.b == []
+        assert config.c == [1.0]
+        assert config.d == ("a", "b")
+        assert config.e == "dummy"
+
+    def test_list_args(self):
+        config = parse(self.Config, ["--a", "1", "--b", "a", "b", "--e", "value"])
+        assert config.b == ["a", "b"]
+
+    def test_sequence_args(self):
+        config = parse(self.Config, ["--a", "1", "--c", "2.0", "2.5"])
+        assert config.c == [2.0, 2.5]
+
+    def test_sequence_args_tuple(self):
+        config = parse(self.Config, ["--a", "1", "--d", "c"])
+        assert config.d == ["c"]
+
+    def test_invalid_type(self, capsys):
+        with raises(SystemExit):
+            parse(self.Config, ["--a", "1", "--c", "abc"])
+        captured = capsys.readouterr()
+        assert "error: argument --c: invalid float value:" in captured.err
 
 
 class TestUnion:
