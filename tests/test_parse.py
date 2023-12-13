@@ -213,7 +213,3 @@ class TestIgnoreArg:
 
         with raises(TypeError):
             parse(TConfig, [])
-
-
-class TestParsePositional:
-    pass
