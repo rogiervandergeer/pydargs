@@ -136,9 +136,10 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
         else:
             parser.add_argument(
                 f"--{field.name.replace('_', '-')}",
-                default=field.default,
+                default=argparse.SUPPRESS,
                 dest=field.name,
                 help=f"Override field {field.name}.",
+                required=field.default is MISSING and field.default_factory is MISSING,
                 type=field.type,
             )
     return parser
