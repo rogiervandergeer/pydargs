@@ -63,6 +63,18 @@ Additional options can be provided to the dataclass field metadata.
 
 The following metadata fields are supported:
 
+### `positional`
+Set `positional=True` to create a positional argument instead of an option.
+
+```python
+from dataclasses import dataclass, field
+
+@dataclass
+class Config:
+  argument: str = field(metadata=dict(positional=True))
+```
+
+
 ### `as_flags`
 
 Set `as_flags=True` for a boolean field:
