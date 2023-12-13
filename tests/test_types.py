@@ -55,10 +55,11 @@ class TestList:
     @dataclass
     class Config:
         a: list[int]
-        b: list[str] = field(default_factory=lambda: [])
-        c: Sequence[float] = field(default_factory=lambda: [1.0])
-        d: Sequence[str] = ("a", "b")
-        e: str = "dummy"
+        b: list[str] = field(default_factory=lambda: [], metadata=dict(positional=False))
+        c: list[str] = field(default_factory=lambda: [], metadata=dict(positional=True))
+        d: Sequence[float] = field(default_factory=lambda: [1.0])
+        e: Sequence[str] = ("a", "b")
+        f: str = "dummy"
 
     def test_a_required(self, capsys):
         with raises(SystemExit):
@@ -70,27 +71,31 @@ class TestList:
         config = parse(self.Config, ["--a", "1"])
         assert config.a == [1]
         assert config.b == []
-        assert config.c == [1.0]
-        assert config.d == ("a", "b")
-        assert config.e == "dummy"
+        assert config.d == [1.0]
+        assert config.e == ("a", "b")
+        assert config.f == "dummy"
 
     def test_list_args(self):
-        config = parse(self.Config, ["--a", "1", "--b", "a", "b", "--e", "value"])
+        config = parse(self.Config, ["--a", "1", "--b", "a", "b", "--f", "value"])
         assert config.b == ["a", "b"]
 
     def test_sequence_args(self):
-        config = parse(self.Config, ["--a", "1", "--c", "2.0", "2.5"])
-        assert config.c == [2.0, 2.5]
+        config = parse(self.Config, ["--a", "1", "--d", "2.0", "2.5"])
+        assert config.d == [2.0, 2.5]
 
     def test_sequence_args_tuple(self):
-        config = parse(self.Config, ["--a", "1", "--d", "c"])
-        assert config.d == ["c"]
+        config = parse(self.Config, ["--a", "1", "--e", "d"])
+        assert config.e == ["d"]
+
+    def test_positional_args(self):
+        config = parse(self.Config, ["x", "y", "--a", "1"])
+        assert config.c == ["x", "y"]
 
     def test_invalid_type(self, capsys):
         with raises(SystemExit):
-            parse(self.Config, ["--a", "1", "--c", "abc"])
+            parse(self.Config, ["--a", "1", "--d", "abc"])
         captured = capsys.readouterr()
-        assert "error: argument --c: invalid float value:" in captured.err
+        assert "error: argument --d: invalid float value:" in captured.err
 
 
 class TestUnion:
