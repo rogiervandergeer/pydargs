@@ -46,101 +46,102 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
         if field.metadata.get("ignore_arg", False):
             continue
 
+        kwargs: dict[str, Any] = dict()
         field_has_default = field.default is not MISSING or field.default_factory is not MISSING
+        if positional := field.metadata.get("positional", False):
+            argument_name = field.name
+            if field_has_default:
+                kwargs["nargs"] = "?"
+        else:
+            argument_name = f"--{field.name.replace('_', '-')}"
+            kwargs = dict(dest=field.name, required=not field_has_default)
+
         if parser_fct := field.metadata.get("parser", None):
             parser.add_argument(
-                f"--{field.name.replace('_', '-')}",
+                argument_name,
                 default=argparse.SUPPRESS,
-                dest=field.name,
                 help=f"Override field {field.name}.",
-                required=field.default is MISSING and field.default_factory is MISSING,
                 type=parser_fct,
+                **kwargs,
             )
         elif origin := get_origin(field.type):
             if origin is Sequence or origin is list:
-                required = field.default is MISSING and field.default_factory is MISSING
+                kwargs["nargs"] = "+" if not field_has_default else "*"
                 parser.add_argument(
-                    f"--{field.name.replace('_', '-')}",
+                    argument_name,
                     default=argparse.SUPPRESS,
-                    dest=field.name,
                     help=f"Override field {field.name}.",
-                    nargs="+" if required else "*",
-                    required=required,
                     type=get_args(field.type)[0],
+                    **kwargs,
                 )
             elif origin is Literal:
                 if len({type(arg) for arg in get_args(field.type)}) > 1:
                     raise NotImplementedError("Parsing Literals with mixed types is not supported.")
                 parser.add_argument(
-                    f"--{field.name.replace('_', '-')}",
+                    argument_name,
                     choices=get_args(field.type),
                     default=argparse.SUPPRESS,
-                    dest=field.name,
                     help=f"Override field {field.name}.",
-                    required=not field_has_default,
                     type=type(get_args(field.type)[0]),
+                    **kwargs,
                 )
             elif origin in UNION_TYPES:
                 union_parser = partial(_parse_union, union_type=field.type)
                 setattr(union_parser, "__name__", repr(field.type))
                 parser.add_argument(
-                    f"--{field.name.replace('_', '-')}",
+                    argument_name,
                     default=argparse.SUPPRESS,
-                    dest=field.name,
                     help=f"Override field {field.name}.",
-                    required=not field_has_default,
                     type=union_parser,
+                    **kwargs,
                 )
             else:
                 raise NotImplementedError(f"Parsing into type {origin} is not implemented.")
         elif field.type in (date, datetime):
             parser.add_argument(
-                f"--{field.name.replace('_', '-')}",
+                argument_name,
                 default=argparse.SUPPRESS,
-                dest=field.name,
                 help=f"Override field {field.name}.",
-                required=not field_has_default,
                 type=partial(
                     _parse_datetime, is_date=field.type is date, date_format=field.metadata.get("date_format")
                 ),
+                **kwargs,
             )
         elif field.type is bool:
             if field.metadata.get("as_flags", False):
+                if positional:
+                    raise ValueError()
                 parser.add_argument(
                     f"--{field.name.replace('_', '-')}",
                     action=argparse.BooleanOptionalAction,
                     default=argparse.SUPPRESS,
-                    dest=field.name,
-                    required=not field_has_default,
+                    **kwargs,
                 )
             else:
                 parser.add_argument(
-                    f"--{field.name.replace('_', '-')}",
+                    argument_name,
                     default=argparse.SUPPRESS,
-                    dest=field.name,
                     help=f"Override field {field.name}.",
-                    required=field.default is MISSING and field.default_factory is MISSING,
                     type=_parse_bool,
+                    **kwargs,
                 )
         elif issubclass(field.type, Enum):
             parser.add_argument(
-                f"--{field.name.replace('_', '-')}",
+                argument_name,
                 choices=list(field.type),
                 default=argparse.SUPPRESS,
-                dest=field.name,
                 help=f"Override field {field.name}.",
-                required=field.default is MISSING and field.default_factory is MISSING,
                 type=lambda x: field.type[x],
+                **kwargs,
             )
 
         else:
             parser.add_argument(
-                f"--{field.name.replace('_', '-')}",
+                argument_name,
                 default=argparse.SUPPRESS,
-                dest=field.name,
                 help=f"Override field {field.name}.",
-                required=field.default is MISSING and field.default_factory is MISSING,
                 type=field.type,
+                **kwargs,
             )
     return parser
 
