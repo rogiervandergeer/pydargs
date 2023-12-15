@@ -213,3 +213,15 @@ class TestIgnoreArg:
 
         with raises(TypeError):
             parse(TConfig, [])
+
+
+class TestPositional:
+    @dataclass
+    class Config:
+        a: Literal["a", "b"] = field(default="a", metadata={"positional": True})
+        z: str = "dummy"
+
+    def test_ignore_default(self):
+        config = parse(self.Config, [])
+        assert config.a == "a"
+        assert config.z == "dummy"
