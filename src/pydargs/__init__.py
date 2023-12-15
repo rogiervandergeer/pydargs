@@ -66,7 +66,7 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
             )
         elif origin := get_origin(field.type):
             if origin is Sequence or origin is list:
-                kwargs["nargs"] = "+" if not field_has_default else "*"
+                kwargs["nargs"] = "*" if field_has_default else "+"
                 parser.add_argument(
                     argument_name,
                     default=argparse.SUPPRESS,
