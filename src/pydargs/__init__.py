@@ -48,7 +48,8 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
 
         kwargs: dict[str, Any] = dict()
         field_has_default = field.default is not MISSING or field.default_factory is not MISSING
-        if positional := field.metadata.get("positional", False):
+        positional = field.metadata.get("positional", False)
+        if positional:
             argument_name = field.name
             if field_has_default:
                 kwargs["nargs"] = "?"
