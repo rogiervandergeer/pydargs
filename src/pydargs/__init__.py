@@ -110,7 +110,7 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
         elif field.type is bool:
             if field.metadata.get("as_flags", False):
                 if positional:
-                    raise ValueError()
+                    raise ValueError("A field cannot be positional as well as be represented by flags.")
                 parser.add_argument(
                     f"--{field.name.replace('_', '-')}",
                     action=argparse.BooleanOptionalAction,
