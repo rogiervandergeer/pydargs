@@ -149,7 +149,7 @@ class Config:
 would result in a message like:
 
 ```text
-usage: your_program -h --an-integer AN_INTEGER
+usage: your_program [-h] [--an-integer AN_INTEGER]
 
 optional arguments:
   -h, --help               show this help message and exit
@@ -172,7 +172,7 @@ class Config:
 calling `your_program -h` would result in a message like:
 
 ```text
-usage: your_program -h --an-integer INT
+usage: your_program [-h] [--an-integer INT]
 
 optional arguments:
   -h, --help        show this help message and exit
