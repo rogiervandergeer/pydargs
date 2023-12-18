@@ -107,6 +107,21 @@ when providing invalid input is lacking any details. Also, no validation is perf
 type matches the field type. In the above example, `--list-of-numbers '{"a": "b"}'` would result in `list_of_numbers`
 being the dictionary `{"a": "b"}` without any kind of warning.
 
+### `short_option`
+
+Provide a short option for a field, which can be used as an alternative to the long option.
+For example,
+
+```python
+from dataclasses import dataclass, field
+
+@dataclass
+class Config:
+  a_field_with_a_long_name: int = field(metadata=dict(short_option="-a"))
+```
+
+would allow using `-a 42` as an alternative to `--a-field-with-a-long-name 42`.
+
 ### Ignoring fields
 Fields can be ignored by adding the `ignore_arg` metadata field:
 
