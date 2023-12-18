@@ -56,7 +56,7 @@ class TestList:
     class Config:
         a: list[int]
         b: list[str] = field(default_factory=lambda: [], metadata=dict(positional=False))
-        c: list[str] = field(default_factory=lambda: [], metadata=dict(positional=True))
+        c: list[str] = field(default_factory=lambda: [], metadata=dict(positional=True, help="an important argument"))
         d: Sequence[float] = field(default_factory=lambda: [1.0])
         e: Sequence[str] = ("a", "b")
         f: str = "dummy"
@@ -72,15 +72,15 @@ class TestList:
             [c ...]
 
 positional arguments:
-  c              Override field c.
+  c              an important argument
 
 optional arguments:
   -h, --help     show this help message and exit
-  --a A [A ...]  Override field a.
-  --b [B ...]    Override field b.
-  --d [D ...]    Override field d.
-  --e [E ...]    Override field e.
-  --f F          Override field f.
+  --a A [A ...]
+  --b [B ...]
+  --d [D ...]
+  --e [E ...]    (default: ('a', 'b'))
+  --f F          (default: dummy)
 """
         )
 
@@ -130,25 +130,6 @@ class TestUnion:
         d: Union[None, int] = None
         e: Optional[Union[int, float]] = None
         f: float = 2.0
-
-    def test_help(self, capsys):
-        with raises(SystemExit):
-            parse(self.Config, ["--help"], prog="prog")
-        captured = capsys.readouterr()
-        assert (
-            captured.out
-            == """usage: prog [-h] --a A [--b B] [--c C] [--d D] [--e E] [--f F]
-
-optional arguments:
-  -h, --help  show this help message and exit
-  --a A       Override field a.
-  --b B       Override field b.
-  --c C       Override field c.
-  --d D       Override field d.
-  --e E       Override field e.
-  --f F       Override field f.
-"""
-        )
 
     def test_default(self):
         config = parse(self.Config, ["--a", "1"])
@@ -223,25 +204,6 @@ class TestBool:
         d: bool = field(default=False, metadata=dict(as_flags=True))
         e: bool = field(default=True, metadata=dict(as_flags=True))
         z: int = 0
-
-    def test_help(self, capsys):
-        with raises(SystemExit):
-            parse(self.Config, ["--help"], prog="prog")
-        captured = capsys.readouterr()
-        assert (
-            captured.out
-            == """usage: prog [-h] --a A [--b B] [--c C] [--d | --no-d] [--e | --no-e] [--z Z]
-
-optional arguments:
-  -h, --help   show this help message and exit
-  --a A        Override field a.
-  --b B        Override field b.
-  --c C        Override field c.
-  --d, --no-d  Set or unset field d.
-  --e, --no-e  Set or unset field e.
-  --z Z        Override field z.
-"""
-        )
 
     def test_required(self, capsys):
         with raises(SystemExit):

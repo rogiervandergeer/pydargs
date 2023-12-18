@@ -48,6 +48,13 @@ def _create_parser(tp: Type[Dataclass], prog: Optional[str]) -> ArgumentParser:
 
         kwargs: dict[str, Any] = dict()
         field_has_default = field.default is not MISSING or field.default_factory is not MISSING
+        kwargs["help"] = field.metadata.get("help", "")
+        if field.default is not MISSING:
+            if len(kwargs["help"]):
+                kwargs["help"] += " "
+            kwargs["help"] += f"(default: {field.default})"
+        if "metavar" in field.metadata:
+            kwargs["metavar"] = field.metadata["metavar"]
         positional = field.metadata.get("positional", False)
         if positional:
             argument_name = field.name
@@ -55,13 +62,13 @@ def _create_parser(tp: Type[Dataclass], prog: Optional[str]) -> ArgumentParser:
                 kwargs["nargs"] = "?"
         else:
             argument_name = f"--{field.name.replace('_', '-')}"
-            kwargs = dict(dest=field.name, required=not field_has_default)
+            kwargs["dest"] = field.name
+            kwargs["required"] = not field_has_default
 
         if parser_fct := field.metadata.get("parser", None):
             parser.add_argument(
                 argument_name,
                 default=argparse.SUPPRESS,
-                help=f"Override field {field.name}.",
                 type=parser_fct,
                 **kwargs,
             )
@@ -71,7 +78,6 @@ def _create_parser(tp: Type[Dataclass], prog: Optional[str]) -> ArgumentParser:
                 parser.add_argument(
                     argument_name,
                     default=argparse.SUPPRESS,
-                    help=f"Override field {field.name}.",
                     type=get_args(field.type)[0],
                     **kwargs,
                 )
@@ -82,7 +88,6 @@ def _create_parser(tp: Type[Dataclass], prog: Optional[str]) -> ArgumentParser:
                     argument_name,
                     choices=get_args(field.type),
                     default=field.default if positional and field_has_default else argparse.SUPPRESS,
-                    help=f"Override field {field.name}.",
                     type=type(get_args(field.type)[0]),
                     **kwargs,
                 )
@@ -92,7 +97,6 @@ def _create_parser(tp: Type[Dataclass], prog: Optional[str]) -> ArgumentParser:
                 parser.add_argument(
                     argument_name,
                     default=argparse.SUPPRESS,
-                    help=f"Override field {field.name}.",
                     type=union_parser,
                     **kwargs,
                 )
@@ -102,7 +106,6 @@ def _create_parser(tp: Type[Dataclass], prog: Optional[str]) -> ArgumentParser:
             parser.add_argument(
                 argument_name,
                 default=argparse.SUPPRESS,
-                help=f"Override field {field.name}.",
                 type=partial(
                     _parse_datetime, is_date=field.type is date, date_format=field.metadata.get("date_format")
                 ),
@@ -116,14 +119,12 @@ def _create_parser(tp: Type[Dataclass], prog: Optional[str]) -> ArgumentParser:
                     f"--{field.name.replace('_', '-')}",
                     action=argparse.BooleanOptionalAction,
                     default=argparse.SUPPRESS,
-                    help=f"Set or unset field {field.name}.",
                     **kwargs,
                 )
             else:
                 parser.add_argument(
                     argument_name,
                     default=argparse.SUPPRESS,
-                    help=f"Override field {field.name}.",
                     type=_parse_bool,
                     **kwargs,
                 )
@@ -132,7 +133,6 @@ def _create_parser(tp: Type[Dataclass], prog: Optional[str]) -> ArgumentParser:
                 argument_name,
                 choices=list(field.type),
                 default=field.default if positional and field_has_default else argparse.SUPPRESS,
-                help=f"Override field {field.name}.",
                 type=lambda x: field.type[x],
                 **kwargs,
             )
@@ -141,7 +141,6 @@ def _create_parser(tp: Type[Dataclass], prog: Optional[str]) -> ArgumentParser:
             parser.add_argument(
                 argument_name,
                 default=argparse.SUPPRESS,
-                help=f"Override field {field.name}.",
                 type=field.type,
                 **kwargs,
             )

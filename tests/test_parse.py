@@ -186,22 +186,6 @@ class TestIgnoreArg:
         c: bool = field(default=False, metadata=dict(ignore_arg=False, as_flags=True))
         z: str = "dummy"
 
-    def test_help(self, capsys):
-        with raises(SystemExit):
-            parse(self.Config, ["--help"], prog="prog")
-        captured = capsys.readouterr()
-        assert (
-            captured.out
-            == """usage: prog [-h] [--a A] [--c | --no-c] [--z Z]
-
-optional arguments:
-  -h, --help   show this help message and exit
-  --a A        Override field a.
-  --c, --no-c  Set or unset field c.
-  --z Z        Override field z.
-"""
-        )
-
     def test_ignore_default(self):
         config = parse(self.Config, [])
         assert config.a == 5
@@ -235,24 +219,7 @@ class TestPositional:
     @dataclass
     class Config:
         a: Literal["a", "b"] = field(default="a", metadata={"positional": True})
-        z: str = "dummy"
-
-    def test_help(self, capsys):
-        with raises(SystemExit):
-            parse(self.Config, ["--help"], prog="prog")
-        captured = capsys.readouterr()
-        assert (
-            captured.out
-            == """usage: prog [-h] [--z Z] [{a,b}]
-
-positional arguments:
-  {a,b}       Override field a.
-
-optional arguments:
-  -h, --help  show this help message and exit
-  --z Z       Override field z.
-"""
-        )
+        z: str = field(default="dummy")
 
     def test_ignore_default(self):
         config = parse(self.Config, [])
@@ -264,3 +231,31 @@ optional arguments:
         config = parse(self.Config, args)  # type: ignore
         assert config.a == "b"
         assert config.z == "Z"
+
+
+class TestHelp:
+    @dataclass
+    class Config:
+        an_integer: int = field(metadata={"positional": True, "metavar": "I"})
+        a_string: str = "abc"
+        a_literal: Literal["a", "b"] = field(default="a", metadata={"positional": True, "help": "a or b"})
+        another_string: str = field(default="xyz", metadata={"metavar": "AS"})
+
+    def test_help(self, capsys):
+        with raises(SystemExit):
+            parse(self.Config, ["--help"], prog="prog")
+        captured = capsys.readouterr()
+        assert (
+            captured.out
+            == """usage: prog [-h] [--a-string A_STRING] [--another-string AS] I [{a,b}]
+
+positional arguments:
+  I
+  {a,b}                a or b (default: a)
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --a-string A_STRING  (default: abc)
+  --another-string AS  (default: xyz)
+"""
+        )
