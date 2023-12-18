@@ -4,7 +4,7 @@ from enum import Enum
 from json import loads
 from typing import Literal, Optional
 
-from pytest import raises
+from pytest import mark, raises
 
 from pydargs import parse
 
@@ -225,3 +225,26 @@ class TestPositional:
         config = parse(self.Config, [])
         assert config.a == "a"
         assert config.z == "dummy"
+
+    @mark.parametrize("args", [["b", "--z", "Z"], ["--z", "Z", "b"]])
+    def test_order(self, args: list[str]):
+        config = parse(self.Config, args)  # type: ignore
+        assert config.a == "b"
+        assert config.z == "Z"
+
+    def test_help(self, capsys):
+        with raises(SystemExit):
+            parse(self.Config, ["--help"], prog="prog")
+        captured = capsys.readouterr()
+        assert (
+            captured.out
+            == """usage: prog [-h] [--z Z] [{a,b}]
+
+positional arguments:
+  {a,b}       Override field a.
+
+optional arguments:
+  -h, --help  show this help message and exit
+  --z Z       Override field z.
+"""
+        )
