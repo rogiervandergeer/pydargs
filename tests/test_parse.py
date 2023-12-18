@@ -239,6 +239,7 @@ class TestHelp:
         an_integer: int = field(metadata={"positional": True, "metavar": "I"})
         a_string: str = "abc"
         a_literal: Literal["a", "b"] = field(default="a", metadata={"positional": True, "help": "a or b"})
+        flag: bool = field(default=True, metadata={"as_flags": True, "short_option": "-f"})
         another_string: str = field(default="xyz", metadata={"metavar": "AS"})
 
     def test_help(self, capsys):
@@ -247,15 +248,27 @@ class TestHelp:
         captured = capsys.readouterr()
         assert (
             captured.out
-            == """usage: prog [-h] [--a-string A_STRING] [--another-string AS] I [{a,b}]
+            == """usage: prog [-h] [--a-string A_STRING] [-f | --flag | --no-flag]
+            [--another-string AS]
+            I [{a,b}]
 
 positional arguments:
   I
-  {a,b}                a or b (default: a)
+  {a,b}                 a or b (default: a)
 
 optional arguments:
-  -h, --help           show this help message and exit
-  --a-string A_STRING  (default: abc)
-  --another-string AS  (default: xyz)
+  -h, --help            show this help message and exit
+  --a-string A_STRING   (default: abc)
+  -f, --flag, --no-flag
+                        (default: True)
+  --another-string AS   (default: xyz)
 """
         )
+
+    def test_short_option_must_have_dash(self):
+        @dataclass
+        class InvalidConfig:
+            an_integer: int = field(metadata={"short_option": "s"})
+
+        with raises(ValueError):
+            parse(InvalidConfig, [])
