@@ -34,9 +34,17 @@ Dataclass = TypeVar("Dataclass", bound=ADataclass)
 
 
 def parse(tp: Type[Dataclass], args: Optional[list[str]] = None, prog: Optional[str] = None) -> Dataclass:
-    if args is None:
-        args = sys.argv
-    namespace = _create_parser(tp, prog=prog).parse_args(args)
+    """Instantiate an object of the provided dataclass type from command line arguments.
+
+    Args:
+        tp: Type of the object to instantiate. This is expected to be a dataclass.
+        args: Optional list of arguments. Defaults to sys.argv.
+        prog: Optional program name, used by argparse to display help and error messages.
+
+    Returns:
+        An instance of tp.
+    """
+    namespace = _create_parser(tp, prog=prog).parse_args(sys.argv if args is None else args)
     return tp(**namespace.__dict__)
 
 
