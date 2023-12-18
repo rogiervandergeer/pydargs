@@ -186,6 +186,22 @@ class TestIgnoreArg:
         c: bool = field(default=False, metadata=dict(ignore_arg=False, as_flags=True))
         z: str = "dummy"
 
+    def test_help(self, capsys):
+        with raises(SystemExit):
+            parse(self.Config, ["--help"], prog="prog")
+        captured = capsys.readouterr()
+        assert (
+            captured.out
+            == """usage: prog [-h] [--a A] [--c | --no-c] [--z Z]
+
+optional arguments:
+  -h, --help   show this help message and exit
+  --a A        Override field a.
+  --c, --no-c  Set or unset field c.
+  --z Z        Override field z.
+"""
+        )
+
     def test_ignore_default(self):
         config = parse(self.Config, [])
         assert config.a == 5
@@ -221,17 +237,6 @@ class TestPositional:
         a: Literal["a", "b"] = field(default="a", metadata={"positional": True})
         z: str = "dummy"
 
-    def test_ignore_default(self):
-        config = parse(self.Config, [])
-        assert config.a == "a"
-        assert config.z == "dummy"
-
-    @mark.parametrize("args", [["b", "--z", "Z"], ["--z", "Z", "b"]])
-    def test_order(self, args: list[str]):
-        config = parse(self.Config, args)  # type: ignore
-        assert config.a == "b"
-        assert config.z == "Z"
-
     def test_help(self, capsys):
         with raises(SystemExit):
             parse(self.Config, ["--help"], prog="prog")
@@ -248,3 +253,14 @@ optional arguments:
   --z Z       Override field z.
 """
         )
+
+    def test_ignore_default(self):
+        config = parse(self.Config, [])
+        assert config.a == "a"
+        assert config.z == "dummy"
+
+    @mark.parametrize("args", [["b", "--z", "Z"], ["--z", "Z", "b"]])
+    def test_order(self, args: list[str]):
+        config = parse(self.Config, args)  # type: ignore
+        assert config.a == "b"
+        assert config.z == "Z"

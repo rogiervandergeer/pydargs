@@ -116,6 +116,7 @@ def _create_parser(tp: Type[Dataclass], prog: Optional[str]) -> ArgumentParser:
                     f"--{field.name.replace('_', '-')}",
                     action=argparse.BooleanOptionalAction,
                     default=argparse.SUPPRESS,
+                    help=f"Set or unset field {field.name}.",
                     **kwargs,
                 )
             else:
