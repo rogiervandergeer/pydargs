@@ -33,15 +33,15 @@ class ADataclass(Protocol):
 Dataclass = TypeVar("Dataclass", bound=ADataclass)
 
 
-def parse(tp: Type[Dataclass], args: Optional[list[str]] = None) -> Dataclass:
+def parse(tp: Type[Dataclass], args: Optional[list[str]] = None, prog: Optional[str] = None) -> Dataclass:
     if args is None:
         args = sys.argv
-    namespace = _create_parser(tp).parse_args(args)
+    namespace = _create_parser(tp, prog=prog).parse_args(args)
     return tp(**namespace.__dict__)
 
 
-def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
-    parser = ArgumentParser()
+def _create_parser(tp: Type[Dataclass], prog: Optional[str]) -> ArgumentParser:
+    parser = ArgumentParser(prog=prog)
     for field in fields(tp):
         if field.metadata.get("ignore_arg", False):
             continue
