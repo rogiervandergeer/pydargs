@@ -43,6 +43,8 @@ entrypoint --number 42 --some-string abcd
 The base types are supported: `int`, `float`, `str`, `bool`, as well as:
 
 - **Enums** or **literals** comprised of those types.
+- **Bytes**, with an optional `encoding` metadata field:
+  `a_value: bytes = field(metadata=dict(encoding="ascii"))`, which defaults to utf-8.
 - **Date** and **datetime**, with an optional `date_format` metadata
   field: `your_date: date = field(metadata=dict(date_format="%m-%d-%Y"))`. When not
   provided dates in ISO 8601 format are accepted.

@@ -87,13 +87,13 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
                     **kwargs,
                 )
             elif origin in UNION_TYPES:
-                union_parser = partial(_parse_union, union_type=field.type)
-                setattr(union_parser, "__name__", repr(field.type))
+                bytes_parser = partial(_parse_union, union_type=field.type)
+                setattr(bytes_parser, "__name__", repr(field.type))
                 parser.add_argument(
                     argument_name,
                     default=argparse.SUPPRESS,
                     help=f"Override field {field.name}.",
-                    type=union_parser,
+                    type=bytes_parser,
                     **kwargs,
                 )
             else:
@@ -135,7 +135,17 @@ def _create_parser(tp: Type[Dataclass]) -> ArgumentParser:
                 type=lambda x: field.type[x],
                 **kwargs,
             )
-
+        elif field.type is bytes:
+            encoding = field.metadata.get("encoding", "utf-8")
+            bytes_parser = partial(field.type, encoding=encoding)
+            setattr(bytes_parser, "__name__", encoding)
+            parser.add_argument(
+                argument_name,
+                default=argparse.SUPPRESS,
+                help=f"Override field {field.name}.",
+                type=bytes_parser,
+                **kwargs,
+            )
         else:
             parser.add_argument(
                 argument_name,

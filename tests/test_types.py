@@ -51,6 +51,30 @@ class TestBase:
         assert config.e == "f"
 
 
+class TestBytes:
+    @dataclass
+    class Config:
+        a: bytes = b"a"
+        b: bytes = field(default=b"b", metadata=dict(encoding="ascii"))
+        z: int = 12
+
+    def test_default(self):
+        config = parse(self.Config, [])
+        assert config.a == b"a"
+        assert config.b == b"b"
+        assert config.z == 12
+
+    def test_encoding(self):
+        config = parse(self.Config, ["--a", "ꀀ"])
+        assert config.a == b"\xea\x80\x80"
+
+    def test_invalid_encoding(self, capsys):
+        with raises(SystemExit):
+            parse(self.Config, ["--b", "ꀀ"])
+        captured = capsys.readouterr()
+        assert "argument --b: invalid ascii value: 'ꀀ'\n" in captured.err
+
+
 class TestList:
     @dataclass
     class Config:
