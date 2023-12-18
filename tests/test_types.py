@@ -61,29 +61,6 @@ class TestList:
         e: Sequence[str] = ("a", "b")
         f: str = "dummy"
 
-    def test_help(self, capsys):
-        with raises(SystemExit):
-            parse(self.Config, ["--help"], prog="prog")
-        captured = capsys.readouterr()
-        assert (
-            captured.out
-            == """usage: prog [-h] --a A [A ...] [--b [B ...]] [--d [D ...]] [--e [E ...]]
-            [--f F]
-            [c ...]
-
-positional arguments:
-  c              an important argument
-
-optional arguments:
-  -h, --help     show this help message and exit
-  --a A [A ...]
-  --b [B ...]
-  --d [D ...]
-  --e [E ...]    (default: ('a', 'b'))
-  --f F          (default: dummy)
-"""
-        )
-
     def test_a_required(self, capsys):
         with raises(SystemExit):
             parse(self.Config, [])

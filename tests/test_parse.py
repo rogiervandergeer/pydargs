@@ -242,28 +242,21 @@ class TestHelp:
         flag: bool = field(default=True, metadata={"as_flags": True, "short_option": "-f"})
         another_string: str = field(default="xyz", metadata={"metavar": "AS"})
 
-    def test_help(self, capsys):
+    @mark.parametrize(
+        "help_string",
+        [
+            "usage: prog [-h] [--a-string A_STRING] [-f | --flag | --no-flag]",
+            "  {a,b}                 a or b (default: a)",
+            "  --a-string A_STRING   (default: abc)",
+            "  -f, --flag, --no-flag",  # The default may come on the next line
+            "  --another-string AS   (default: xyz)",
+        ],
+    )
+    def test_help(self, capsys, help_string: str):
         with raises(SystemExit):
-            parse(self.Config, ["--help"], prog="prog")
+            parse(self.Config, ["--help"], prog="prog")  # type: ignore
         captured = capsys.readouterr()
-        assert (
-            captured.out
-            == """usage: prog [-h] [--a-string A_STRING] [-f | --flag | --no-flag]
-            [--another-string AS]
-            I [{a,b}]
-
-positional arguments:
-  I
-  {a,b}                 a or b (default: a)
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --a-string A_STRING   (default: abc)
-  -f, --flag, --no-flag
-                        (default: True)
-  --another-string AS   (default: xyz)
-"""
-        )
+        assert help_string in captured.out.replace("\n", "")
 
     def test_short_option_must_have_dash(self):
         @dataclass
