@@ -35,7 +35,7 @@ Dataclass = TypeVar("Dataclass", bound=ADataclass)
 
 def parse(tp: Type[Dataclass], args: Optional[list[str]] = None) -> Dataclass:
     if args is None:
-        args = sys.argv
+        args = sys.argv[1:]
     namespace = _create_parser(tp).parse_args(args)
     return tp(**namespace.__dict__)
 
