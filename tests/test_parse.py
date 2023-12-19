@@ -236,9 +236,9 @@ class TestKwargs:
         z: str = "dummy"
 
     def test_with_args_and_kwargs(self):
-        config = parse(self.Config, ["--a", "1", "--z", "2"], prog_name="pydargs")
+        config = parse(self.Config, ["--a", "1", "--z", "2"], prog="pydargs")
         assert config.a == 1
-        assert config.z == "dummy"
+        assert config.z == "2"
 
     def test_with_kwargs(self, monkeypatch):
         monkeypatch.setattr(sys, "argv", ["name_of_program"])
@@ -250,7 +250,7 @@ class TestKwargs:
         config = parse(self.Config, ["--so", "something_else"])
         assert config.some_long_argument == "something_else"
         assert config.a == 5
-        assert config.z == "2"
+        assert config.z == "dummy"
 
     def test_disallow_abbrev(self, capsys):
         with raises(SystemExit):
