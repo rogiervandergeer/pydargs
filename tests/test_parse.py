@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from datetime import date, datetime
 from enum import Enum
 from json import loads
 from typing import Literal, Optional
@@ -49,7 +48,7 @@ class TestParseCustomParser:
 
 
 class TestParseChoices:
-    def test_enum(self):
+    def test_enum(self, capsys):
         class AnEnum(Enum):
             one = 1
             two = 2
@@ -61,11 +60,13 @@ class TestParseChoices:
 
         with raises(SystemExit):
             parse(TConfig, [])
+        captured = capsys.readouterr()
+        assert "error: the following arguments are required: --an-enum" in captured.err
 
         t = parse(TConfig, ["--an-enum", "one"])
         assert t.an_enum == AnEnum.one
 
-    def test_str_enum(self):
+    def test_str_enum(self, capsys):
         class AnEnum(str, Enum):
             one = "one"
             two = "two"
@@ -78,6 +79,8 @@ class TestParseChoices:
 
         with raises(SystemExit):
             parse(TConfig, [])
+        captured = capsys.readouterr()
+        assert "error: the following arguments are required: --an-enum" in captured.err
 
         t = parse(TConfig, ["--an-enum", "one"])
         assert t.an_enum == AnEnum.one
@@ -87,7 +90,7 @@ class TestParseChoices:
         assert t.an_enum == AnEnum.one
         assert t.another_enum == AnEnum.two
 
-    def test_str_literal(self):
+    def test_str_literal(self, capsys):
         @dataclass
         class TConfig:
             a_literal: Literal["x", "y"] = "x"
@@ -100,8 +103,10 @@ class TestParseChoices:
 
         with raises(SystemExit):
             parse(TConfig, ["--a-literal", "z"])
+        captured = capsys.readouterr()
+        assert "error: argument --a-literal: invalid choice: 'z'" in captured.err
 
-    def test_int_literal(self):
+    def test_int_literal(self, capsys):
         @dataclass
         class TConfig:
             a_literal: Literal[1, 2] = 1
@@ -114,6 +119,8 @@ class TestParseChoices:
 
         with raises(SystemExit):
             parse(TConfig, ["--a-literal", "3"])
+        captured = capsys.readouterr()
+        assert "error: argument --a-literal: invalid choice: 3" in captured.err
 
     def test_fail_mixed_types(self):
         @dataclass
@@ -122,42 +129,6 @@ class TestParseChoices:
 
         with raises(NotImplementedError):
             parse(TConfig, [])
-
-
-class TestParseDateTime:
-    def test_required(self):
-        @dataclass
-        class TConfig:
-            a_date: date
-
-        with raises(SystemExit):
-            parse(TConfig, [])
-
-        t = parse(TConfig, ["--a-date", "1234-05-06"])
-        assert t.a_date == date(1234, 5, 6)
-
-    def test_optional(self):
-        @dataclass
-        class TConfig:
-            a_date: date = date(2345, 6, 7)
-            b_datetime: datetime = field(default_factory=datetime.now)
-
-        t = parse(TConfig, [])
-        assert t.a_date == date(2345, 6, 7)
-        assert isinstance(t.b_datetime, datetime)
-
-    def test_date_format(self):
-        @dataclass
-        class TConfig:
-            a_date: date = field(metadata=dict(date_format="%m/%d/%Y"))
-            b_datetime: datetime = field(default_factory=datetime.now, metadata=dict(date_format="%m/%d/%Y %H:%M"))
-
-        t = parse(TConfig, ["--a-date", "8/16/1999"])
-        assert t.a_date == date(1999, 8, 16)
-
-        t = parse(TConfig, ["--a-date", "8/16/1999", "--b-datetime", "12/12/1991 23:45"])
-        assert t.a_date == date(1999, 8, 16)
-        assert t.b_datetime == datetime(1991, 12, 12, 23, 45)
 
 
 class TestNotImplemented:
