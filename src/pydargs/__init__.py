@@ -149,7 +149,17 @@ def _create_parser(tp: Type[Dataclass], prog: Optional[str]) -> ArgumentParser:
                 type=lambda x: field.type[x],
                 **kwargs,
             )
-
+        elif field.type is bytes:
+            encoding = field.metadata.get("encoding", "utf-8")
+            bytes_parser = partial(field.type, encoding=encoding)
+            setattr(bytes_parser, "__name__", encoding)
+            parser.add_argument(
+                argument_name,
+                default=argparse.SUPPRESS,
+                help=f"Override field {field.name}.",
+                type=bytes_parser,
+                **kwargs,
+            )
         else:
             parser.add_argument(
                 *arguments,

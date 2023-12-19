@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from datetime import date, datetime
 from sys import version_info
 from typing import Optional, Union
 
@@ -49,6 +50,30 @@ class TestBase:
     def test_second_positional(self):
         config = parse(self.Config, ["1", "f", "--b", "b"])
         assert config.e == "f"
+
+
+class TestBytes:
+    @dataclass
+    class Config:
+        a: bytes = b"a"
+        b: bytes = field(default=b"b", metadata=dict(encoding="ascii"))
+        z: int = 12
+
+    def test_default(self):
+        config = parse(self.Config, [])
+        assert config.a == b"a"
+        assert config.b == b"b"
+        assert config.z == 12
+
+    def test_encoding(self):
+        config = parse(self.Config, ["--a", "ꀀ"])
+        assert config.a == b"\xea\x80\x80"
+
+    def test_invalid_encoding(self, capsys):
+        with raises(SystemExit):
+            parse(self.Config, ["--b", "ꀀ"])
+        captured = capsys.readouterr()
+        assert "argument --b: invalid ascii value: 'ꀀ'\n" in captured.err
 
 
 class TestList:
@@ -241,3 +266,41 @@ class TestBool:
 
         config = parse(TConfig, ["--a"])
         assert config.a is True
+
+
+class TestDate:
+    @dataclass
+    class Config:
+        a_date: date
+        another_date: date = date(2345, 6, 7)
+        a_datetime: datetime = field(default_factory=datetime.now)
+        a_formatted_date: date = field(default=date(2345, 6, 7), metadata=dict(date_format="%m/%d/%Y"))
+        a_formatted_datetime: datetime = field(
+            default_factory=datetime.now, metadata=dict(date_format="%m/%d/%Y %H:%M")
+        )
+
+    def test_defaults(self):
+        config = parse(self.Config, ["--a-date", "2000-01-01"])
+        assert config.another_date == date(2345, 6, 7)
+        assert config.a_formatted_date == date(2345, 6, 7)
+
+    def test_required(self, capsys):
+        with raises(SystemExit):
+            parse(self.Config, [])
+        captured = capsys.readouterr()
+        assert "error: the following arguments are required: --a-date" in captured.err
+
+    def test_optional(self):
+        config = parse(
+            self.Config, ["--a-date", "2000-01-01", "--another-date", "2012-12-12", "--a-datetime", "2020-02-03 04:05"]
+        )
+        assert config.another_date == date(2012, 12, 12)
+        assert config.a_datetime == datetime(2020, 2, 3, 4, 5)
+
+    def test_date_format(self):
+        config = parse(self.Config, ["--a-date", "2000-01-01", "--a-formatted-date", "10/20/2000"])
+        assert config.a_formatted_date == date(2000, 10, 20)
+
+    def test_datetime_format(self):
+        config = parse(self.Config, ["--a-date", "2000-01-01", "--a-formatted-datetime", "8/16/1999 23:45"])
+        assert config.a_formatted_datetime == datetime(1999, 8, 16, 23, 45)
