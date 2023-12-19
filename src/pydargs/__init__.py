@@ -154,9 +154,8 @@ def _create_parser(tp: Type[Dataclass], prog: Optional[str]) -> ArgumentParser:
             bytes_parser = partial(field.type, encoding=encoding)
             setattr(bytes_parser, "__name__", encoding)
             parser.add_argument(
-                argument_name,
+                *arguments,
                 default=argparse.SUPPRESS,
-                help=f"Override field {field.name}.",
                 type=bytes_parser,
                 **kwargs,
             )
