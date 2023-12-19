@@ -226,3 +226,34 @@ class TestSysArgv:
         assert config.positional == "positional_value"
         assert config.a == 3
         assert config.z == "dummy"
+
+
+class TestKwargs:
+    @dataclass
+    class Config:
+        a: int = 5
+        some_long_argument: str = "something"
+        z: str = "dummy"
+
+    def test_with_args_and_kwargs(self):
+        config = parse(self.Config, ["--a", "1", "--z", "2"], prog_name="pydargs")
+        assert config.a == 1
+        assert config.z == "dummy"
+
+    def test_with_kwargs(self, monkeypatch):
+        monkeypatch.setattr(sys, "argv", ["name_of_program"])
+        config = parse(self.Config, allow_abbrev=False)
+        assert config.a == 5
+        assert config.z == "dummy"
+
+    def test_allow_abbrev(self):
+        config = parse(self.Config, ["--so", "something_else"])
+        assert config.some_long_argument == "something_else"
+        assert config.a == 5
+        assert config.z == "2"
+
+    def test_disallow_abbrev(self, capsys):
+        with raises(SystemExit):
+            parse(self.Config, ["--so", "something_else"], allow_abbrev=False)
+        captured = capsys.readouterr()
+        assert "error: unrecognized arguments: --so something_else" in captured.err
