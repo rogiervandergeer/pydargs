@@ -240,9 +240,8 @@ class TestKwargs:
         assert config.a == 1
         assert config.z == "2"
 
-    def test_with_kwargs(self, monkeypatch):
-        monkeypatch.setattr(sys, "argv", ["name_of_program"])
-        config = parse(self.Config, allow_abbrev=False)
+    def test_with_kwargs(self):
+        config = parse(self.Config, [], allow_abbrev=False)
         assert config.a == 5
         assert config.z == "dummy"
 

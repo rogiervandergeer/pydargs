@@ -33,8 +33,8 @@ class ADataclass(Protocol):
 Dataclass = TypeVar("Dataclass", bound=ADataclass)
 
 
-def parse(tp: Type[Dataclass], args: Optional[list[str]] = None) -> Dataclass:
-    namespace = _create_parser(tp).parse_args(args)
+def parse(tp: Type[Dataclass], args: Optional[list[str]] = None, **kwargs: Any) -> Dataclass:
+    namespace = _create_parser(tp, **kwargs).parse_args(args)
     return tp(**namespace.__dict__)
 
 
