@@ -13,7 +13,6 @@ jobs:
     timeout-minutes: 10
     strategy:
       matrix:
-        install: [".[dev]", ".[dev,pydantic]"]
         version: ["3.9", "3.10", "3.11"]
 
     steps:
@@ -26,7 +25,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip3 install "${{ matrix.install }}"
+          pip3 install ".[dev,pydantic]"
 
       - name: Run pre-commit
         run: pre-commit run --all-files
