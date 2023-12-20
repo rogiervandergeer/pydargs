@@ -241,7 +241,7 @@ class TestKwargs:
         assert config.z == "2"
 
     def test_with_kwargs(self):
-        config = parse(self.Config, [], allow_abbrev=False)
+        config = parse(self.Config, None, allow_abbrev=False)
         assert config.a == 5
         assert config.z == "dummy"
 
