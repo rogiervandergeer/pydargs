@@ -38,7 +38,7 @@ or
 entrypoint --number 42 --some-string abcd
 ```
 
-## argparse settings
+## ArgumentParser arguments
 
 It's possible to pass additional arguments to the underlying `argparse.ArgumentParser` instance by providing them
 as keyword arguments to the `parse` function. For example:
