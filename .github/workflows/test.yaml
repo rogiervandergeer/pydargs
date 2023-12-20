@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 10
     strategy:
       matrix:
-        install: [., ".[pydantic]"]
+        install: [".[dev]", ".[dev,pydantic]"]
         version: ["3.9", "3.10", "3.11"]
 
     steps:
