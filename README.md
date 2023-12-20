@@ -38,6 +38,16 @@ or
 entrypoint --number 42 --some-string abcd
 ```
 
+## ArgumentParser arguments
+
+It's possible to pass additional arguments to the underlying `argparse.ArgumentParser` instance by providing them
+as keyword arguments to the `parse` function. For example:
+
+```python
+config = parse(Config, prog="myprogram", allow_abbrev=False)
+```
+will disable abbreviations for long options and set the program name to `myprogram` in help messages. For an extensive list of accepted arguments, see [the argparse docs](https://docs.python.org/3/library/argparse.html#argumentparser-objects).
+
 ## Supported Types
 
 The base types are supported: `int`, `float`, `str`, `bool`, as well as:
