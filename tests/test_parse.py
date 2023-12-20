@@ -1,3 +1,4 @@
+import sys
 from dataclasses import dataclass, field
 from enum import Enum
 from json import loads
@@ -195,4 +196,33 @@ class TestPositional:
     def test_ignore_default(self):
         config = parse(self.Config, [])
         assert config.a == "a"
+        assert config.z == "dummy"
+
+
+class TestSysArgv:
+    @dataclass
+    class Config:
+        positional: str = field(default="positional", metadata=dict(positional=True))
+        a: int = 5
+        z: str = "dummy"
+
+    def test_empty_argv(self, monkeypatch):
+        monkeypatch.setattr(sys, "argv", ["name_of_program"])
+        config = parse(self.Config)
+        assert config.positional == "positional"
+        assert config.a == 5
+        assert config.z == "dummy"
+
+    def test_non_empty_argv(self, monkeypatch):
+        monkeypatch.setattr(sys, "argv", ["name_of_program", "--a", "3"])
+        config = parse(self.Config)
+        assert config.positional == "positional"
+        assert config.a == 3
+        assert config.z == "dummy"
+
+    def test_with_positional_argv(self, monkeypatch):
+        monkeypatch.setattr(sys, "argv", ["name_of_program", "--a", "3", "positional_value"])
+        config = parse(self.Config)
+        assert config.positional == "positional_value"
+        assert config.a == 3
         assert config.z == "dummy"
