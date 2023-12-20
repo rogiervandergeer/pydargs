@@ -81,7 +81,7 @@ class TestList:
     class Config:
         a: list[int]
         b: list[str] = field(default_factory=lambda: [], metadata=dict(positional=False))
-        c: list[str] = field(default_factory=lambda: [], metadata=dict(positional=True))
+        c: list[str] = field(default_factory=lambda: [], metadata=dict(positional=True, help="an important argument"))
         d: Sequence[float] = field(default_factory=lambda: [1.0])
         e: Sequence[str] = ("a", "b")
         f: str = "dummy"
@@ -203,8 +203,8 @@ class TestBool:
         a: bool
         b: bool = False
         c: bool = True
-        d: bool = field(default=False, metadata=dict(as_flags=True))
-        e: bool = field(default=True, metadata=dict(as_flags=True))
+        d: bool = field(default=True, metadata=dict(as_flags=True))
+        extra: bool = field(default=False, metadata=dict(as_flags=True, short_option="-x"))
         z: int = 0
 
     def test_required(self, capsys):
@@ -222,8 +222,8 @@ class TestBool:
         config = parse(self.Config, ["--a", "false"])
         assert config.b is False
         assert config.c is True
-        assert config.d is False
-        assert config.e is True
+        assert config.d is True
+        assert config.extra is False
         assert config.z == 0
 
     def test_invalid(self, capsys):
@@ -239,11 +239,14 @@ class TestBool:
         config = parse(self.Config, ["--a", "false", "--no-d"])
         assert config.d is False
 
-        config = parse(self.Config, ["--a", "false", "--e"])
-        assert config.e is True
+        config = parse(self.Config, ["--a", "false", "--extra"])
+        assert config.extra is True
 
-        config = parse(self.Config, ["--a", "false", "--no-e"])
-        assert config.e is False
+        config = parse(self.Config, ["--a", "false", "--no-extra"])
+        assert config.extra is False
+
+        config = parse(self.Config, ["--a", "false", "-x"])
+        assert config.extra is True
 
     def test_flag_argument(self, capsys):
         with raises(SystemExit):

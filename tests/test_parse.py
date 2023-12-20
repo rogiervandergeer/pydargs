@@ -4,7 +4,7 @@ from enum import Enum
 from json import loads
 from typing import Literal, Optional
 
-from pytest import raises
+from pytest import mark, raises
 
 from pydargs import parse
 
@@ -191,12 +191,52 @@ class TestPositional:
     @dataclass
     class Config:
         a: Literal["a", "b"] = field(default="a", metadata={"positional": True})
-        z: str = "dummy"
+        z: str = field(default="dummy")
 
     def test_ignore_default(self):
         config = parse(self.Config, [])
         assert config.a == "a"
         assert config.z == "dummy"
+
+    @mark.parametrize("args", [["b", "--z", "Z"], ["--z", "Z", "b"]])
+    def test_order(self, args: list[str]):
+        config = parse(self.Config, args)  # type: ignore
+        assert config.a == "b"
+        assert config.z == "Z"
+
+
+class TestHelp:
+    @dataclass
+    class Config:
+        an_integer: int = field(metadata={"positional": True, "metavar": "I"})
+        a_string: str = "abc"
+        a_literal: Literal["a", "b"] = field(default="a", metadata={"positional": True, "help": "a or b"})
+        flag: bool = field(default=True, metadata={"as_flags": True, "short_option": "-f"})
+        another_string: str = field(default="xyz", metadata={"metavar": "AS"})
+
+    @mark.parametrize(
+        "help_string",
+        [
+            "usage: prog [-h] [--a-string A_STRING] [-f | --flag | --no-flag]",
+            "  {a,b}                 a or b (default: a)",
+            "  --a-string A_STRING   (default: abc)",
+            "  -f, --flag, --no-flag",  # The default may come on the next line
+            "  --another-string AS   (default: xyz)",
+        ],
+    )
+    def test_help(self, capsys, help_string: str):
+        with raises(SystemExit):
+            parse(self.Config, ["--help"], prog="prog")  # type: ignore
+        captured = capsys.readouterr()
+        assert help_string in captured.out.replace("\n", "")
+
+    def test_short_option_must_have_dash(self):
+        @dataclass
+        class InvalidConfig:
+            an_integer: int = field(metadata={"short_option": "s"})
+
+        with raises(ValueError):
+            parse(InvalidConfig, [])
 
 
 class TestSysArgv:

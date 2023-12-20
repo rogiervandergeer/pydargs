@@ -34,6 +34,16 @@ Dataclass = TypeVar("Dataclass", bound=ADataclass)
 
 
 def parse(tp: Type[Dataclass], args: Optional[list[str]] = None, **kwargs: Any) -> Dataclass:
+    """Instantiate an object of the provided dataclass type from command line arguments.
+
+    Args:
+        tp: Type of the object to instantiate. This is expected to be a dataclass.
+        args: Optional list of arguments. Defaults to sys.argv.
+        **kwargs: Keyword arguments passed to the ArgumentParser object.
+
+    Returns:
+        An instance of tp.
+    """
     namespace = _create_parser(tp, **kwargs).parse_args(args)
     return tp(**namespace.__dict__)
 
@@ -46,20 +56,32 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
 
         argument_kwargs: dict[str, Any] = dict()
         field_has_default = field.default is not MISSING or field.default_factory is not MISSING
+        argument_kwargs["help"] = field.metadata.get("help", "")
+        if field.default is not MISSING:
+            if len(argument_kwargs["help"]):
+                argument_kwargs["help"] += " "
+            argument_kwargs["help"] += f"(default: {field.default})"
+        if "metavar" in field.metadata:
+            argument_kwargs["metavar"] = field.metadata["metavar"]
         positional = field.metadata.get("positional", False)
+        short_option = field.metadata.get("short_option")
         if positional:
-            argument_name = field.name
+            if short_option:
+                raise ValueError("Short options are not supported for positional arguments.")
+            arguments = [field.name]
             if field_has_default:
                 argument_kwargs["nargs"] = "?"
         else:
-            argument_name = f"--{field.name.replace('_', '-')}"
-            argument_kwargs = dict(dest=field.name, required=not field_has_default)
+            arguments = [f"--{field.name.replace('_', '-')}"]
+            if short_option:
+                arguments = [short_option] + arguments
+            argument_kwargs["dest"] = field.name
+            argument_kwargs["required"] = not field_has_default
 
         if parser_fct := field.metadata.get("parser", None):
             parser.add_argument(
-                argument_name,
+                *arguments,
                 default=argparse.SUPPRESS,
-                help=f"Override field {field.name}.",
                 type=parser_fct,
                 **argument_kwargs,
             )
@@ -67,9 +89,8 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
             if origin is Sequence or origin is list:
                 argument_kwargs["nargs"] = "*" if field_has_default else "+"
                 parser.add_argument(
-                    argument_name,
+                    *arguments,
                     default=argparse.SUPPRESS,
-                    help=f"Override field {field.name}.",
                     type=get_args(field.type)[0],
                     **argument_kwargs,
                 )
@@ -77,10 +98,9 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
                 if len({type(arg) for arg in get_args(field.type)}) > 1:
                     raise NotImplementedError("Parsing Literals with mixed types is not supported.")
                 parser.add_argument(
-                    argument_name,
+                    *arguments,
                     choices=get_args(field.type),
                     default=field.default if positional and field_has_default else argparse.SUPPRESS,
-                    help=f"Override field {field.name}.",
                     type=type(get_args(field.type)[0]),
                     **argument_kwargs,
                 )
@@ -88,9 +108,8 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
                 union_parser = partial(_parse_union, union_type=field.type)
                 setattr(union_parser, "__name__", repr(field.type))
                 parser.add_argument(
-                    argument_name,
+                    *arguments,
                     default=argparse.SUPPRESS,
-                    help=f"Override field {field.name}.",
                     type=union_parser,
                     **argument_kwargs,
                 )
@@ -98,9 +117,8 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
                 raise NotImplementedError(f"Parsing into type {origin} is not implemented.")
         elif field.type in (date, datetime):
             parser.add_argument(
-                argument_name,
+                *arguments,
                 default=argparse.SUPPRESS,
-                help=f"Override field {field.name}.",
                 type=partial(
                     _parse_datetime, is_date=field.type is date, date_format=field.metadata.get("date_format")
                 ),
@@ -111,25 +129,23 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
                 if positional:
                     raise ValueError("A field cannot be positional as well as be represented by flags.")
                 parser.add_argument(
-                    f"--{field.name.replace('_', '-')}",
+                    *arguments,
                     action=argparse.BooleanOptionalAction,
                     default=argparse.SUPPRESS,
                     **argument_kwargs,
                 )
             else:
                 parser.add_argument(
-                    argument_name,
+                    *arguments,
                     default=argparse.SUPPRESS,
-                    help=f"Override field {field.name}.",
                     type=_parse_bool,
                     **argument_kwargs,
                 )
         elif issubclass(field.type, Enum):
             parser.add_argument(
-                argument_name,
+                *arguments,
                 choices=list(field.type),
                 default=field.default if positional and field_has_default else argparse.SUPPRESS,
-                help=f"Override field {field.name}.",
                 type=lambda x: field.type[x],
                 **argument_kwargs,
             )
@@ -138,17 +154,15 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
             bytes_parser = partial(field.type, encoding=encoding)
             setattr(bytes_parser, "__name__", encoding)
             parser.add_argument(
-                argument_name,
+                *arguments,
                 default=argparse.SUPPRESS,
-                help=f"Override field {field.name}.",
                 type=bytes_parser,
                 **argument_kwargs,
             )
         else:
             parser.add_argument(
-                argument_name,
+                *arguments,
                 default=argparse.SUPPRESS,
-                help=f"Override field {field.name}.",
                 type=field.type,
                 **argument_kwargs,
             )
