@@ -70,6 +70,7 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
                 raise ValueError("Short options are not supported for positional arguments.")
             arguments = [field.name]
             if field_has_default:
+                # Positional arguments that are not required must have a valid default
                 argument_kwargs["default"] = (
                     field.default_factory()  # This is safe only because the parser is only used once.
                     if field.default_factory is not MISSING
