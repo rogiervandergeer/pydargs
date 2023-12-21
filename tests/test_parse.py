@@ -226,6 +226,18 @@ class TestPositional:
         config = parse(Config, [])
         assert config.positional == 123
 
+    def test_default_factory_modification(self):
+        @dataclass
+        class Config:
+            positional: list[int] = field(default_factory=lambda: [123], metadata=dict(positional=True))
+
+        config_1 = parse(Config, [])
+        config_1.positional.append(456)
+        assert config_1.positional == [123, 456]
+
+        config_2 = parse(Config, [])
+        assert config_2.positional == [123]
+
     def test_list_positional(self):
         @dataclass
         class Config:
