@@ -25,7 +25,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip3 install -e ".[dev]"
+          pip3 install ".[dev,pydantic]"
 
       - name: Run pre-commit
         run: pre-commit run --all-files

@@ -1,6 +1,6 @@
 # pydargs
 
-Pydargs allows configuring a dataclass through command line arguments.
+Pydargs allows configuring a (Pydantic) dataclass through command line arguments.
 
 ## Installation
 
