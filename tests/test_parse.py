@@ -204,6 +204,51 @@ class TestPositional:
         assert config.a == "b"
         assert config.z == "Z"
 
+    def test_positional_with_default(self):
+        @dataclass
+        class Config:
+            positional: int = field(default=123, metadata=dict(positional=True))
+
+        config = parse(Config, ["321"])
+        assert config.positional == 321
+
+        config = parse(Config, [])
+        assert config.positional == 123
+
+    def test_positional_with_default_factory(self):
+        @dataclass
+        class Config:
+            positional: int = field(default_factory=lambda: 123, metadata=dict(positional=True))
+
+        config = parse(Config, ["321"])
+        assert config.positional == 321
+
+        config = parse(Config, [])
+        assert config.positional == 123
+
+    def test_default_factory_modification(self):
+        @dataclass
+        class Config:
+            positional: list[int] = field(default_factory=lambda: [123], metadata=dict(positional=True))
+
+        config_1 = parse(Config, [])
+        config_1.positional.append(456)
+        assert config_1.positional == [123, 456]
+
+        config_2 = parse(Config, [])
+        assert config_2.positional == [123]
+
+    def test_list_positional(self):
+        @dataclass
+        class Config:
+            positional: list[int] = field(default_factory=lambda: [1, 2, 3], metadata=dict(positional=True))
+
+        config = parse(Config, ["3", "2", "1"])
+        assert config.positional == [3, 2, 1]
+
+        config = parse(Config, [])
+        assert config.positional == [1, 2, 3]
+
 
 class TestHelp:
     @dataclass

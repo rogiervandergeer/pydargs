@@ -49,7 +49,7 @@ def parse(tp: Type[Dataclass], args: Optional[list[str]] = None, **kwargs: Any) 
 
 
 def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
-    parser = ArgumentParser(**kwargs)
+    parser = ArgumentParser(**kwargs, argument_default=argparse.SUPPRESS)
     for field in fields(tp):
         if field.metadata.get("ignore_arg", False):
             continue
@@ -70,7 +70,14 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
                 raise ValueError("Short options are not supported for positional arguments.")
             arguments = [field.name]
             if field_has_default:
+                # Positional arguments that are not required must have a valid default
+                argument_kwargs["default"] = (
+                    field.default_factory()  # This is safe only because the parser is only used once.
+                    if field.default_factory is not MISSING
+                    else field.default
+                )
                 argument_kwargs["nargs"] = "?"
+
         else:
             arguments = [f"--{field.name.replace('_', '-')}"]
             if short_option:
@@ -81,7 +88,6 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
         if parser_fct := field.metadata.get("parser", None):
             parser.add_argument(
                 *arguments,
-                default=argparse.SUPPRESS,
                 type=parser_fct,
                 **argument_kwargs,
             )
@@ -90,7 +96,6 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
                 argument_kwargs["nargs"] = "*" if field_has_default else "+"
                 parser.add_argument(
                     *arguments,
-                    default=argparse.SUPPRESS,
                     type=get_args(field.type)[0],
                     **argument_kwargs,
                 )
@@ -100,7 +105,6 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
                 parser.add_argument(
                     *arguments,
                     choices=get_args(field.type),
-                    default=field.default if positional and field_has_default else argparse.SUPPRESS,
                     type=type(get_args(field.type)[0]),
                     **argument_kwargs,
                 )
@@ -109,7 +113,6 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
                 setattr(union_parser, "__name__", repr(field.type))
                 parser.add_argument(
                     *arguments,
-                    default=argparse.SUPPRESS,
                     type=union_parser,
                     **argument_kwargs,
                 )
@@ -118,7 +121,6 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
         elif field.type in (date, datetime):
             parser.add_argument(
                 *arguments,
-                default=argparse.SUPPRESS,
                 type=partial(
                     _parse_datetime, is_date=field.type is date, date_format=field.metadata.get("date_format")
                 ),
@@ -131,13 +133,11 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
                 parser.add_argument(
                     *arguments,
                     action=argparse.BooleanOptionalAction,
-                    default=argparse.SUPPRESS,
                     **argument_kwargs,
                 )
             else:
                 parser.add_argument(
                     *arguments,
-                    default=argparse.SUPPRESS,
                     type=_parse_bool,
                     **argument_kwargs,
                 )
@@ -145,7 +145,6 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
             parser.add_argument(
                 *arguments,
                 choices=list(field.type),
-                default=field.default if positional and field_has_default else argparse.SUPPRESS,
                 type=lambda x: field.type[x],
                 **argument_kwargs,
             )
@@ -155,14 +154,12 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
             setattr(bytes_parser, "__name__", encoding)
             parser.add_argument(
                 *arguments,
-                default=argparse.SUPPRESS,
                 type=bytes_parser,
                 **argument_kwargs,
             )
         else:
             parser.add_argument(
                 *arguments,
-                default=argparse.SUPPRESS,
                 type=field.type,
                 **argument_kwargs,
             )
