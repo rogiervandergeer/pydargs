@@ -1,6 +1,5 @@
-import argparse
 import sys
-from argparse import ArgumentParser
+from argparse import ArgumentParser, BooleanOptionalAction, Namespace, SUPPRESS
 from collections.abc import Sequence
 from dataclasses import MISSING, dataclass, fields
 from datetime import date, datetime
@@ -8,15 +7,16 @@ from enum import Enum
 from functools import partial
 from typing import (
     Any,
-    Type,
-    TypeVar,
+    Literal,
     Optional,
     Protocol,
+    Type,
+    TypeVar,
+    Union,
     get_origin,
     get_args,
-    Union,
-    Literal,
 )
+from warnings import warn
 
 UNION_TYPES: set[Any] = {Union}
 if sys.version_info >= (3, 10):
@@ -45,11 +45,31 @@ def parse(tp: Type[Dataclass], args: Optional[list[str]] = None, **kwargs: Any) 
         An instance of tp.
     """
     namespace = _create_parser(tp, **kwargs).parse_args(args)
-    return tp(**namespace.__dict__)
+    return _create_object(tp, namespace)
+
+
+def _create_object(tp: Type[Dataclass], namespace: Namespace, prefix: str = "") -> Dataclass:
+    for field in fields(tp):
+        if hasattr(field.type, "__dataclass_fields__"):
+            if hasattr(namespace, prefix + field.name):
+                obj = field.type(**getattr(namespace, prefix + field.name))
+            else:
+                obj = _create_object(field.type, namespace, prefix=f"{prefix}{field.name}_")
+            setattr(namespace, prefix + field.name, obj)
+    args = {key[len(prefix) :]: value for key, value in namespace.__dict__.items() if key.startswith(prefix)}
+    for key in args.keys():
+        delattr(namespace, prefix + key)
+    return tp(**args)
 
 
 def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
-    parser = ArgumentParser(**kwargs, argument_default=argparse.SUPPRESS)
+    parser = ArgumentParser(**kwargs, argument_default=SUPPRESS)
+    _add_arguments(parser, tp)
+    return parser
+
+
+def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = "") -> ArgumentParser:
+    parser_or_group = parser.add_argument_group(prefix.strip("_")) if len(prefix) else parser
     for field in fields(tp):
         if field.metadata.get("ignore_arg", False):
             continue
@@ -68,7 +88,7 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
         if positional:
             if short_option:
                 raise ValueError("Short options are not supported for positional arguments.")
-            arguments = [field.name]
+            arguments = [prefix + field.name]
             if field_has_default:
                 # Positional arguments that are not required must have a valid default
                 argument_kwargs["default"] = (
@@ -79,14 +99,14 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
                 argument_kwargs["nargs"] = "?"
 
         else:
-            arguments = [f"--{field.name.replace('_', '-')}"]
+            arguments = [f"--{(prefix+field.name).replace('_', '-')}"]
             if short_option:
                 arguments = [short_option] + arguments
-            argument_kwargs["dest"] = field.name
+            argument_kwargs["dest"] = prefix + field.name
             argument_kwargs["required"] = not field_has_default
 
         if parser_fct := field.metadata.get("parser", None):
-            parser.add_argument(
+            parser_or_group.add_argument(
                 *arguments,
                 type=parser_fct,
                 **argument_kwargs,
@@ -94,7 +114,7 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
         elif origin := get_origin(field.type):
             if origin is Sequence or origin is list:
                 argument_kwargs["nargs"] = "*" if field_has_default else "+"
-                parser.add_argument(
+                parser_or_group.add_argument(
                     *arguments,
                     type=get_args(field.type)[0],
                     **argument_kwargs,
@@ -102,7 +122,7 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
             elif origin is Literal:
                 if len({type(arg) for arg in get_args(field.type)}) > 1:
                     raise NotImplementedError("Parsing Literals with mixed types is not supported.")
-                parser.add_argument(
+                parser_or_group.add_argument(
                     *arguments,
                     choices=get_args(field.type),
                     type=type(get_args(field.type)[0]),
@@ -111,15 +131,22 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
             elif origin in UNION_TYPES:
                 union_parser = partial(_parse_union, union_type=field.type)
                 setattr(union_parser, "__name__", repr(field.type))
-                parser.add_argument(
+                parser_or_group.add_argument(
                     *arguments,
                     type=union_parser,
                     **argument_kwargs,
                 )
             else:
                 raise NotImplementedError(f"Parsing into type {origin} is not implemented.")
+        elif hasattr(field.type, "__dataclass_fields__"):
+            if positional:
+                raise ValueError("Dataclasses may not be positional arguments.")
+            if field.default_factory is not None and field.default_factory != field.type:
+                warn(f"Non-standard default of field {field.name} is ignored by pydargs.", UserWarning)
+            _add_arguments(parser, field.type, prefix=f"{prefix}{field.name}_")
+            argument_kwargs["required"] = False
         elif field.type in (date, datetime):
-            parser.add_argument(
+            parser_or_group.add_argument(
                 *arguments,
                 type=partial(
                     _parse_datetime, is_date=field.type is date, date_format=field.metadata.get("date_format")
@@ -130,19 +157,19 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
             if field.metadata.get("as_flags", False):
                 if positional:
                     raise ValueError("A field cannot be positional as well as be represented by flags.")
-                parser.add_argument(
+                parser_or_group.add_argument(
                     *arguments,
-                    action=argparse.BooleanOptionalAction,
+                    action=BooleanOptionalAction,
                     **argument_kwargs,
                 )
             else:
-                parser.add_argument(
+                parser_or_group.add_argument(
                     *arguments,
                     type=_parse_bool,
                     **argument_kwargs,
                 )
         elif issubclass(field.type, Enum):
-            parser.add_argument(
+            parser_or_group.add_argument(
                 *arguments,
                 choices=list(field.type),
                 type=lambda x: field.type[x],
@@ -152,13 +179,13 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
             encoding = field.metadata.get("encoding", "utf-8")
             bytes_parser = partial(field.type, encoding=encoding)
             setattr(bytes_parser, "__name__", encoding)
-            parser.add_argument(
+            parser_or_group.add_argument(
                 *arguments,
                 type=bytes_parser,
                 **argument_kwargs,
             )
         else:
-            parser.add_argument(
+            parser_or_group.add_argument(
                 *arguments,
                 type=field.type,
                 **argument_kwargs,
