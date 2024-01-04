@@ -48,9 +48,9 @@ config = parse(Config, prog="myprogram", allow_abbrev=False)
 ```
 will disable abbreviations for long options and set the program name to `myprogram` in help messages. For an extensive list of accepted arguments, see [the argparse docs](https://docs.python.org/3/library/argparse.html#argumentparser-objects).
 
-## Supported Types
+## Supported Field Types
 
-The base types are supported: `int`, `float`, `str`, `bool`, as well as:
+The dataclass can have fields of the base types: `int`, `float`, `str`, `bool`, as well as:
 
 - **Enums** or **literals** comprised of those types.
 - **Bytes**, with an optional `encoding` metadata field:
@@ -68,6 +68,7 @@ The base types are supported: `int`, `float`, `str`, `bool`, as well as:
   will be parsed into the first type that returns a valid result. Note that this means
   that `str | int` will _always_ result in a value of type `str`.
 - Any other type that can be instantiated from a string, such as `Path`.
+- Dataclasses that, in turn, contain fields of supported types. See [Nested Dataclasses](#nested-dataclasses).
 
 ## Metadata
 
@@ -190,3 +191,47 @@ optional arguments:
   -h, --help        show this help message and exit
   --an-integer INT
 ```
+
+## Nested Dataclasses
+
+Dataclasses may be nested; the type of a dataclass field may be another dataclass type:
+
+```python
+from dataclasses import dataclass, field
+
+@dataclass
+class Config:
+  field_a: int
+  field_b: str = "abc"
+
+
+@dataclass
+class Base:
+  config: Config
+  verbose: bool = False
+```
+
+Argument names of fields of the nested dataclass are prefixed with the field name of the nested dataclass in the base
+dataclass. Calling `pydargs.parse(Base, ["-h"])` will result in somthing like:
+
+```text
+usage: your_program.py [-h] --config-field-a CONFIG_FIELD_A
+                            [--config-field-b CONFIG_FIELD_B]
+                            [--verbose VERBOSE]
+
+options:
+  -h, --help            show this help message and exit
+  --verbose VERBOSE     (default: False)
+
+config:
+  --config-field-a CONFIG_FIELD_A
+  --config-field-b CONFIG_FIELD_B
+                        (default: abc)
+
+```
+
+Please be aware of the following:
+- The default (factory) of fields with a dataclass type is ignored by pydargs, which may yield unexpected results.
+  If you must add a default, do `field_name: NestedClass = field(default_factory: NestedClass)`.
+- Nested dataclasses can not be positional (although _fields of_ the nested dataclass can be).
+- Argument names must not collide. In the example above, the `Base` class should not contain a field named `config_field_a`.
