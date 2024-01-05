@@ -113,7 +113,7 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
             elif origin in UNION_TYPES:
                 parser.add_argument(
                     *arguments,
-                    type=named_partial(_parse_union, name=repr(field.type), union_type=field.type),
+                    type=named_partial(_parse_union, _display_name=repr(field.type), union_type=field.type),
                     **argument_kwargs,
                 )
             else:
@@ -123,9 +123,9 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
                 *arguments,
                 type=named_partial(
                     _parse_datetime,
+                    _display_name=str(field.type),
                     is_date=field.type is date,
                     date_format=field.metadata.get("date_format"),
-                    name=str(field.type),
                 ),
                 **argument_kwargs,
             )
@@ -155,7 +155,7 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
             encoding = field.metadata.get("encoding", "utf-8")
             parser.add_argument(
                 *arguments,
-                type=named_partial(field.type, encoding=encoding, name=encoding),
+                type=named_partial(field.type, _display_name=encoding, encoding=encoding),
                 **argument_kwargs,
             )
         else:

@@ -4,10 +4,10 @@ from typing import Any, Callable, TypeVar
 Fct = TypeVar("Fct")
 
 
-def named_partial(func: Callable[..., Any], *, name: str, **kwargs) -> Callable[[str], Any]:
+def named_partial(func: Callable[..., Any], *, _display_name: str, **kwargs) -> Callable[[str], Any]:
     # Wrapper around partial to give it a name, for argparse to provide meaningful messages
     result = partial(func, **kwargs)
-    setattr(result, "__name__", name)
+    setattr(result, "__name__", _display_name)
     return result
 
 
