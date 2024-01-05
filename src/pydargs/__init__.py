@@ -70,7 +70,7 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
 
 
 def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = "") -> ArgumentParser:
-    parser_or_group = parser.add_argument_group(prefix.strip("_")) if len(prefix) else parser
+    parser_or_group = parser.add_argument_group(prefix.strip("_")) if prefix else parser
     for field in fields(tp):
         if field.metadata.get("ignore_arg", False):
             continue
@@ -144,6 +144,7 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
                 raise ValueError("Dataclasses may not be positional arguments.")
             if field.default_factory is not None and field.default_factory != field.type:
                 warn(f"Non-standard default of field {field.name} is ignored by pydargs.", UserWarning)
+            # Recursively add arguments for the nested dataclasses
             _add_arguments(parser, field.type, prefix=f"{prefix}{field.name}_")
         elif field.type in (date, datetime):
             parser_or_group.add_argument(
