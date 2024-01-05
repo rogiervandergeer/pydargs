@@ -144,7 +144,6 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
             if field.default_factory is not None and field.default_factory != field.type:
                 warn(f"Non-standard default of field {field.name} is ignored by pydargs.", UserWarning)
             _add_arguments(parser, field.type, prefix=f"{prefix}{field.name}_")
-            argument_kwargs["required"] = False
         elif field.type in (date, datetime):
             parser_or_group.add_argument(
                 *arguments,
