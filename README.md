@@ -197,7 +197,7 @@ optional arguments:
 Dataclasses may be nested; the type of a dataclass field may be another dataclass type:
 
 ```python
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 @dataclass
 class Config:
