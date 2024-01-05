@@ -51,13 +51,14 @@ def parse(tp: Type[Dataclass], args: Optional[list[str]] = None, **kwargs: Any) 
 def _create_object(tp: Type[Dataclass], namespace: Namespace, prefix: str = "") -> Dataclass:
     for field in fields(tp):
         if hasattr(field.type, "__dataclass_fields__"):
+            # Create nested dataclass object
             setattr(
                 namespace,
                 prefix + field.name,
                 _create_object(field.type, namespace, prefix=f"{prefix}{field.name}_"),
             )
     args = {key[len(prefix) :]: value for key, value in namespace.__dict__.items() if key.startswith(prefix)}
-    for key in args.keys():
+    for key in args.keys():  # Remove used keys from the namespace
         delattr(namespace, prefix + key)
     return tp(**args)
 
