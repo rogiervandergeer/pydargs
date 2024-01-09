@@ -60,7 +60,8 @@ def _create_object(tp: Type[Dataclass], namespace: Namespace, prefix: str = "") 
                 _create_object(field.type, namespace, prefix=f"{prefix}{field.name}_"),
             )
     args = {key[len(prefix) :]: value for key, value in namespace.__dict__.items() if key.startswith(prefix)}
-    for key in args.keys():  # Remove used keys from the namespace
+    # Remove the keys used so far from the namespace, to prevent clutter when creating a parent object.
+    for key in args.keys():
         delattr(namespace, prefix + key)
     return tp(**args)
 
