@@ -4,7 +4,6 @@ from collections.abc import Sequence
 from dataclasses import MISSING, dataclass, fields
 from datetime import date, datetime
 from enum import Enum
-from functools import partial
 from typing import (
     Any,
     Literal,
@@ -17,6 +16,9 @@ from typing import (
     get_args,
 )
 from warnings import warn
+
+from pydargs.utils import named_partial, rename
+
 
 UNION_TYPES: set[Any] = {Union}
 if sys.version_info >= (3, 10):
@@ -130,11 +132,9 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
                     **argument_kwargs,
                 )
             elif origin in UNION_TYPES:
-                union_parser = partial(_parse_union, union_type=field.type)
-                setattr(union_parser, "__name__", repr(field.type))
                 parser_or_group.add_argument(
                     *arguments,
-                    type=union_parser,
+                    type=named_partial(_parse_union, _display_name=repr(field.type), union_type=field.type),
                     **argument_kwargs,
                 )
             else:
@@ -149,8 +149,11 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
         elif field.type in (date, datetime):
             parser_or_group.add_argument(
                 *arguments,
-                type=partial(
-                    _parse_datetime, is_date=field.type is date, date_format=field.metadata.get("date_format")
+                type=named_partial(
+                    _parse_datetime,
+                    _display_name=str(field.type),
+                    is_date=field.type is date,
+                    date_format=field.metadata.get("date_format"),
                 ),
                 **argument_kwargs,
             )
@@ -178,11 +181,9 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
             )
         elif field.type is bytes:
             encoding = field.metadata.get("encoding", "utf-8")
-            bytes_parser = partial(field.type, encoding=encoding)
-            setattr(bytes_parser, "__name__", encoding)
             parser_or_group.add_argument(
                 *arguments,
-                type=bytes_parser,
+                type=named_partial(field.type, _display_name=encoding, encoding=encoding),
                 **argument_kwargs,
             )
         else:
@@ -194,18 +195,7 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
     return parser
 
 
-Fct = TypeVar("Fct")
-
-
-def rename(name: str):
-    def _rename(f: Fct) -> Fct:
-        setattr(f, "__name__", name)
-        return f
-
-    return _rename
-
-
-@rename("bool")
+@rename(name="bool")
 def _parse_bool(arg: str) -> bool:
     if arg.lower() == "true" or arg == "1":
         return True
