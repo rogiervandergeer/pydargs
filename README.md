@@ -232,6 +232,8 @@ config:
 
 Please be aware of the following:
 - The default (factory) of fields with a dataclass type is ignored by pydargs, which may yield unexpected results.
-  If you must add a default, do `field_name: NestedClass = field(default_factory: NestedClass)`.
+  E.g., in the example above, `config: Config = field(default_factory=lambda: Config(field_b="def"))` will not result in a default of "def" for field_b when parsed by pydargs. 
+  Instead, set `field_b: str = "def"` in the definition of `Config`.
+  If you must add a default, for example for instantiating your dataclass elsewhere, do `config: Config = field(default_factory=Config)`, assuming that all fields in `Config` have a default.
 - Nested dataclasses can not be positional (although _fields of_ the nested dataclass can be).
 - Argument names must not collide. In the example above, the `Base` class should not contain a field named `config_field_a`.
