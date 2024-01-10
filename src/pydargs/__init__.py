@@ -85,6 +85,7 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
         positional = field.metadata.get("positional", False)
         short_option = field.metadata.get("short_option")
         override_by_envvar = field.metadata.get("envvar_override", False)
+        origin = get_origin(field.type)
 
         if override_by_envvar and positional:
             raise ValueError("Positional arguments cannot be overridden by envvars.")
@@ -96,8 +97,7 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
                 envvar_name = field.name.upper()
 
             if value_from_env := os.environ.get(envvar_name):
-                origin = get_origin(field.type)
-                if any(origin is cls for cls in (Sequence, list, tuple, set)):
+                if origin and any(origin is cls for cls in (Sequence, list, tuple, set)):
                     raise TypeError("Overriding default_factory properties by envvars is not supported.")
                 argument_kwargs["default"] = value_from_env
 
@@ -120,7 +120,6 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
                     else field.default
                 )
                 argument_kwargs["nargs"] = "?"
-
         else:
             arguments = [f"--{(prefix+field.name).replace('_', '-')}"]
             if short_option:
@@ -134,7 +133,7 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
                 type=parser_fct,
                 **argument_kwargs,
             )
-        elif origin := get_origin(field.type):
+        elif origin:
             if origin is Sequence or origin is list:
                 argument_kwargs["nargs"] = "*" if field_has_default else "+"
                 parser_or_group.add_argument(
