@@ -77,6 +77,7 @@ class TestParseChoices:
         class TConfig:
             an_enum: AnEnum
             another_enum: AnEnum = AnEnum.three
+            a_float: float = 0.3
 
         with raises(SystemExit):
             parse(TConfig, [])
