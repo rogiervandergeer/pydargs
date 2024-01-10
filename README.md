@@ -192,13 +192,23 @@ optional arguments:
   --an-integer INT
 ```
 
-## `allow_envvar_override`
+## `envvar_override`
 
-To override the value of a field by setting an environment variable, use field metadata `allow_envvar_override`.
-Either by setting `allow_envvar_override=True` or to the name of the envvar to use i.e. `allow_envvar_override="MY_ENVVAR"`.
-In the latter, `"MY_ENVVAR"` will be used to look up the environment variable.
+To override the value of a field by setting an environment variable, use field metadata `envvar_override`.
+Either by setting `envvar_override=True` or to the name of the envvar to use i.e. `envvar_override="MY_ENVVAR"`.
+
+```python
+@dataclass
+class Config:
+    # Can be overridden by setting envvar "EXAMPLE"
+    example: str = field(metadata=dict(envvar_override=True))
+    # Can be overridden by setting envvar "MY_ENVVAR"
+    other_example: int = field(metadata=dict(envvar_override="MY_ENVVAR"))
+```
 
 When the argument is also provided via the command line, the environment variable is ignored.
+We do not allow overriding positional arguments via environment variables.
+
 
 ## Nested Dataclasses
 

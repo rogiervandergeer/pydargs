@@ -84,7 +84,7 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
         argument_kwargs["help"] = field.metadata.get("help", "")
         positional = field.metadata.get("positional", False)
         short_option = field.metadata.get("short_option")
-        override_by_envvar = field.metadata.get("allow_envvar_override", False)
+        override_by_envvar = field.metadata.get("envvar_override", False)
 
         if override_by_envvar and positional:
             raise ValueError("Positional arguments cannot be overridden by envvars.")

@@ -360,13 +360,13 @@ class SecretStr(str):
 class TestEnvironmentVariables:
     @dataclass
     class Config:
-        my_property: str = field(default="default_value", metadata=dict(allow_envvar_override=True))
-        a: str = field(default="default_value", metadata=dict(allow_envvar_override="OTHER_ENVVAR"))
+        my_property: str = field(default="default_value", metadata=dict(envvar_override=True))
+        a: str = field(default="default_value", metadata=dict(envvar_override="OTHER_ENVVAR"))
         z: str = "dummy"
 
     @dataclass
     class ConfigWithSecret:
-        my_property: SecretStr = field(default=SecretStr("default_value"), metadata=dict(allow_envvar_override=True))
+        my_property: SecretStr = field(default=SecretStr("default_value"), metadata=dict(envvar_override=True))
         z: str = "dummy"
 
     def test_default(self):
