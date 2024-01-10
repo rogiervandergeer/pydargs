@@ -361,7 +361,7 @@ class TestEnvironmentVariables:
     @dataclass
     class Config:
         my_property: str = field(default="default_value", metadata=dict(envvar_override=True))
-        a: str = field(default="default_value", metadata=dict(envvar_override="OTHER_ENVVAR"))
+        a: str = field(default_factory=lambda: "default_value", metadata=dict(envvar_override="OTHER_ENVVAR"))
         z: str = "dummy"
 
     @dataclass
@@ -369,10 +369,20 @@ class TestEnvironmentVariables:
         my_property: SecretStr = field(default=SecretStr("default_value"), metadata=dict(envvar_override=True))
         z: str = "dummy"
 
+    @dataclass
+    class IncorrectConfig:
+        my_property: list[str] = field(default_factory=lambda: ["default_value"], metadata=dict(envvar_override=True))
+
     def test_default(self):
         config = parse(self.Config)
         assert config.my_property == "default_value"
         assert config.z == "dummy"
+
+    def test_unsupported_type(self, monkeypatch):
+        monkeypatch.setenv("MY_PROPERTY", "new_value")
+
+        with raises(TypeError):
+            parse(self.IncorrectConfig)
 
     def test_override(self, monkeypatch):
         monkeypatch.setenv("MY_PROPERTY", "new_value")

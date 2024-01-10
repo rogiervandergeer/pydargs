@@ -96,8 +96,9 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
                 envvar_name = field.name.upper()
 
             if value_from_env := os.environ.get(envvar_name):
-                if field.default_factory is not MISSING:
-                    raise ValueError("Overriding default_factory properties by envvars is not supported.")
+                origin = get_origin(field.type)
+                if any(origin is cls for cls in (Sequence, list, tuple, set)):
+                    raise TypeError("Overriding default_factory properties by envvars is not supported.")
                 argument_kwargs["default"] = value_from_env
 
         if field.default is not MISSING:

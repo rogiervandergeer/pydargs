@@ -207,8 +207,8 @@ class Config:
 ```
 
 When the argument is also provided via the command line, the environment variable is ignored.
-We do not allow overriding positional arguments via environment variables.
-
+We do not support overriding positional arguments via environment variables.
+We do not support overriding collection types (list, tuple, set, etc.) via environment variables.
 
 ## Nested Dataclasses
 
