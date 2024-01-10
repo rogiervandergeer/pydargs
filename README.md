@@ -192,6 +192,14 @@ optional arguments:
   --an-integer INT
 ```
 
+## `allow_envvar_override`
+
+To override the value of a field by setting an environment variable, use field metadata `allow_envvar_override`.
+Either by setting `allow_envvar_override=True` or to the name of the envvar to use i.e. `allow_envvar_override="MY_ENVVAR"`.
+In the latter, `"MY_ENVVAR"` will be used to look up the environment variable.
+
+When the argument is also provided via the command line, the environment variable is ignored.
+
 ## Nested Dataclasses
 
 Dataclasses may be nested; the type of a dataclass field may be another dataclass type:
