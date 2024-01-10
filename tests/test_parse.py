@@ -1,6 +1,5 @@
 import sys
 from dataclasses import dataclass, field
-from enum import Enum
 from json import loads
 from typing import Literal, Optional
 
@@ -49,49 +48,6 @@ class TestParseCustomParser:
 
 
 class TestParseChoices:
-    def test_enum(self, capsys):
-        class AnEnum(Enum):
-            one = 1
-            two = 2
-            three = 3
-
-        @dataclass
-        class TConfig:
-            an_enum: AnEnum
-
-        with raises(SystemExit):
-            parse(TConfig, [])
-        captured = capsys.readouterr()
-        assert "error: the following arguments are required: --an-enum" in captured.err
-
-        t = parse(TConfig, ["--an-enum", "one"])
-        assert t.an_enum == AnEnum.one
-
-    def test_str_enum(self, capsys):
-        class AnEnum(str, Enum):
-            one = "one"
-            two = "two"
-            three = "three"
-
-        @dataclass
-        class TConfig:
-            an_enum: AnEnum
-            another_enum: AnEnum = AnEnum.three
-            a_float: float = 0.3
-
-        with raises(SystemExit):
-            parse(TConfig, [])
-        captured = capsys.readouterr()
-        assert "error: the following arguments are required: --an-enum" in captured.err
-
-        t = parse(TConfig, ["--an-enum", "one"])
-        assert t.an_enum == AnEnum.one
-        assert t.another_enum == AnEnum.three
-
-        t = parse(TConfig, ["--an-enum", "one", "--another-enum", "two"])
-        assert t.an_enum == AnEnum.one
-        assert t.another_enum == AnEnum.two
-
     def test_str_literal(self, capsys):
         @dataclass
         class TConfig:
