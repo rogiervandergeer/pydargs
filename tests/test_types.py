@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from enum import Enum
 from sys import version_info
-from typing import Optional, Union
+from typing import Optional, Union, Literal
 
 from pytest import mark, raises
 
@@ -75,6 +75,39 @@ class TestBytes:
             parse(self.Config, ["--b", "ꀀ"])
         captured = capsys.readouterr()
         assert "argument --b: invalid ascii value: 'ꀀ'\n" in captured.err
+
+
+class TestLiteral:
+    @dataclass
+    class Config:
+        a: Literal[1, 2] = field(metadata=dict(positional=True))
+        b: Literal["abc", "def"] = "def"
+        z: int = 12
+
+    def test_default(self):
+        config = parse(self.Config, ["2"])
+        assert config.a == 2
+        assert config.b == "def"
+        assert config.z == 12
+
+    def test_args(self):
+        config = parse(self.Config, ["--b", "abc", "1"])
+        assert config.a == 1
+        assert config.b == "abc"
+
+    def test_invalid(self, capsys):
+        with raises(SystemExit):
+            parse(self.Config, ["3"])
+        captured = capsys.readouterr()
+        assert "argument a: invalid choice: 3 " in captured.err
+
+    def test_fail_mixed_types(self):
+        @dataclass
+        class TConfig:
+            a_literal: Literal[1, "2"] = 1
+
+        with raises(NotImplementedError):
+            parse(TConfig, [])
 
 
 class TestList:

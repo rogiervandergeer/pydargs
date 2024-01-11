@@ -47,48 +47,6 @@ class TestParseCustomParser:
         assert "argument --arg: invalid loads value: '[1, 2" in captured.err
 
 
-class TestParseChoices:
-    def test_str_literal(self, capsys):
-        @dataclass
-        class TConfig:
-            a_literal: Literal["x", "y"] = "x"
-
-        t = parse(TConfig, [])
-        assert t.a_literal == "x"
-
-        t = parse(TConfig, ["--a-literal", "y"])
-        assert t.a_literal == "y"
-
-        with raises(SystemExit):
-            parse(TConfig, ["--a-literal", "z"])
-        captured = capsys.readouterr()
-        assert "error: argument --a-literal: invalid choice: 'z'" in captured.err
-
-    def test_int_literal(self, capsys):
-        @dataclass
-        class TConfig:
-            a_literal: Literal[1, 2] = 1
-
-        t = parse(TConfig, [])
-        assert t.a_literal == 1
-
-        t = parse(TConfig, ["--a-literal", "2"])
-        assert t.a_literal == 2
-
-        with raises(SystemExit):
-            parse(TConfig, ["--a-literal", "3"])
-        captured = capsys.readouterr()
-        assert "error: argument --a-literal: invalid choice: 3" in captured.err
-
-    def test_fail_mixed_types(self):
-        @dataclass
-        class TConfig:
-            a_literal: Literal[1, "2"] = 1
-
-        with raises(NotImplementedError):
-            parse(TConfig, [])
-
-
 class TestNotImplemented:
     def test_set(self):
         @dataclass
