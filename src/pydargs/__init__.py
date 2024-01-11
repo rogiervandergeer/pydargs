@@ -176,7 +176,7 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
         elif issubclass(field.type, Enum):
             parser_or_group.add_argument(
                 *arguments,
-                choices=[str(option) for option in field.type],
+                choices=list(field.type),
                 type=named_partial(_parse_enum_key, _display_name=field.type.__name__, enum_type=field.type),
                 **argument_kwargs,
             )

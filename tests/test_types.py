@@ -355,4 +355,4 @@ class TestEnum:
         with raises(SystemExit):
             parse(self.Config, ["--help"], prog="prog")  # type: ignore
         captured = capsys.readouterr()
-        assert "{AnEnum.one,AnEnum.two,AnEnum.three}" in captured.out.replace("\n", "")
+        assert "{AnIntEnum.one,AnIntEnum.two,AnIntEnum.three}" in captured.out.replace("\n", "")
