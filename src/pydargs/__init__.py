@@ -1,11 +1,12 @@
 import sys
 from argparse import ArgumentParser, BooleanOptionalAction, Namespace, SUPPRESS
 from collections.abc import Sequence
-from dataclasses import MISSING, dataclass, fields
+from dataclasses import MISSING, fields
 from datetime import date, datetime
 from enum import Enum
 from typing import (
     Any,
+    ClassVar,
     Literal,
     Optional,
     Protocol,
@@ -27,12 +28,11 @@ if sys.version_info >= (3, 10):
     UNION_TYPES.add(UnionType)
 
 
-@dataclass
-class ADataclass(Protocol):
-    ...
+class DataClassProtocol(Protocol):
+    __dataclass_fields__: ClassVar[dict]
 
 
-Dataclass = TypeVar("Dataclass", bound=ADataclass)
+Dataclass = TypeVar("Dataclass", bound=DataClassProtocol)
 
 
 def parse(tp: Type[Dataclass], args: Optional[list[str]] = None, **kwargs: Any) -> Dataclass:
