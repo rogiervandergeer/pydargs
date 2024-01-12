@@ -42,13 +42,13 @@ class TestParseSubConfig:
         "help_string",
         ["usage: prog [-h] [--sub-a SUB_A] [--sub-b SUB_B]", "sub:", "--sub-b SUB_B      a string (default: abc)"],
     )
-    def test_help(self, capsys, help_string: str):
+    def test_help(self, capsys, help_string: str) -> None:
         with raises(SystemExit):
             parse(self.Config, ["--help"], prog="prog")  # type: ignore
         captured = capsys.readouterr()
         assert help_string in captured.out.replace("\n", "")
 
-    def test_parse(self, recwarn):
+    def test_parse(self, recwarn) -> None:
         config = parse(self.Config, ["mode"])
         assert len(recwarn) == 0
         assert config.mode == "mode"
@@ -56,14 +56,14 @@ class TestParseSubConfig:
         assert config.sub.b == "abc"
         assert config.flag is False
 
-    def test_flag(self):
+    def test_flag(self) -> None:
         config = parse(self.Config, ["mode", "--flag"])
         assert config.mode == "mode"
         assert config.sub.a == 42
         assert config.sub.b == "abc"
         assert config.flag is True
 
-    def test_set_sub(self):
+    def test_set_sub(self) -> None:
         config = parse(self.Config, ["mode", "--sub-a", "1"])
         assert config.mode == "mode"
         assert config.sub.a == 1
@@ -78,7 +78,7 @@ class TestSubConfigCollision:
         sub: SubConfig = field(default_factory=SubConfig)
         sub_a: float = field(default=1.0)
 
-    def test_parse(self):
+    def test_parse(self) -> None:
         with raises(ArgumentError):
             parse(self.Config, ["mode"])
 
@@ -90,7 +90,7 @@ class TestWarnNonStandardDefault:
         sub: SubConfig = field(default_factory=lambda: SubConfig(a=1))
         flag: bool = field(default=False, metadata=dict(as_flags=True))
 
-    def test_warning(self):
+    def test_warning(self) -> None:
         with warns(UserWarning):
             parse(self.Config, ["mode"])
 
@@ -102,21 +102,21 @@ class TestParseRequiredSubConfig:
         sub: SubConfig = field()
         flag: bool = field(default=False, metadata=dict(as_flags=True))
 
-    def test_parse(self):
+    def test_parse(self) -> None:
         config = parse(self.Config, ["mode"])
         assert config.mode == "mode"
         assert config.sub.a == 42
         assert config.sub.b == "abc"
         assert config.flag is False
 
-    def test_flag(self):
+    def test_flag(self) -> None:
         config = parse(self.Config, ["mode", "--flag"])
         assert config.mode == "mode"
         assert config.sub.a == 42
         assert config.sub.b == "abc"
         assert config.flag is True
 
-    def test_set_sub(self):
+    def test_set_sub(self) -> None:
         config = parse(self.Config, ["mode", "--sub-a", "1"])
         assert config.mode == "mode"
         assert config.sub.a == 1
@@ -131,20 +131,20 @@ class TestParseSubConfigWithRequiredField:
         sub: SubConfigWithRequiredField
         flag: bool = field(default=False, metadata=dict(as_flags=True))
 
-    def test_parse_required(self, capsys):
+    def test_parse_required(self, capsys) -> None:
         with raises(SystemExit):
             parse(self.Config, ["mode"])
         captured = capsys.readouterr()
         assert "the following arguments are required: --sub-a" in captured.err
 
-    def test_flag(self):
+    def test_flag(self) -> None:
         config = parse(self.Config, ["mode", "--sub-a", "1", "--flag"])
         assert config.mode == "mode"
         assert config.sub.a == 1
         assert config.sub.b == "abc"
         assert config.flag is True
 
-    def test_set_sub(self):
+    def test_set_sub(self) -> None:
         config = parse(self.Config, ["mode", "--sub-a", "1", "--sub-b", "def"])
         assert config.mode == "mode"
         assert config.sub.a == 1
@@ -159,27 +159,27 @@ class TestParseSubConfigWithPositional:
         sub: SubConfigWithPositional = field(default_factory=SubConfigWithPositional)
         flag: bool = field(default=False, metadata=dict(as_flags=True))
 
-    def test_help(self, capsys):
+    def test_help(self, capsys) -> None:
         with raises(SystemExit):
             parse(self.Config, ["--help"], prog="prog")  # type: ignore
         captured = capsys.readouterr()
         assert "mode [sub_a]" in captured.out
 
-    def test_parse(self):
+    def test_parse(self) -> None:
         config = parse(self.Config, ["mode"])
         assert config.mode == "mode"
         assert config.sub.a == 42
         assert config.sub.b == "abc"
         assert config.flag is False
 
-    def test_flag(self):
+    def test_flag(self) -> None:
         config = parse(self.Config, ["mode", "1", "--flag"])
         assert config.mode == "mode"
         assert config.sub.a == 1
         assert config.sub.b == "abc"
         assert config.flag is True
 
-    def test_set_sub(self):
+    def test_set_sub(self) -> None:
         config = parse(
             self.Config,
             ["mode", "1", "--sub-b", "def"],
@@ -197,7 +197,7 @@ class TestParsePositionalSubConfig:
         sub: SubConfig = field(default_factory=SubConfig, metadata=dict(positional=True))
         flag: bool = field(default=False, metadata=dict(as_flags=True))
 
-    def test_parse(self):
+    def test_parse(self) -> None:
         with raises(ValueError):
             parse(self.Config, ["mode"])
 
@@ -217,13 +217,13 @@ class TestParseNestedSubConfig:
             "--sub-b-b SUB_B_B  a string (default: abc)\n",
         ],
     )
-    def test_help(self, capsys, help_string: str):
+    def test_help(self, capsys, help_string: str) -> None:
         with raises(SystemExit):
             parse(self.Config, ["--help"], prog="prog")  # type: ignore
         captured = capsys.readouterr()
         assert help_string in captured.out
 
-    def test_parse(self):
+    def test_parse(self) -> None:
         config = parse(self.Config, ["mode"])
         assert config.mode == "mode"
         assert config.sub.a == 42
@@ -232,7 +232,7 @@ class TestParseNestedSubConfig:
         assert config.sub.c == "abc"
         assert config.flag is False
 
-    def test_sub(self):
+    def test_sub(self) -> None:
         config = parse(self.Config, ["mode", "--sub-a", "1", "--flag"])
         assert config.mode == "mode"
         assert config.sub.a == 1
@@ -241,7 +241,7 @@ class TestParseNestedSubConfig:
         assert config.sub.c == "abc"
         assert config.flag is True
 
-    def test_sub_sub(self):
+    def test_sub_sub(self) -> None:
         config = parse(
             self.Config,
             ["mode", "--sub-a", "1", "--sub-b-a", "21", "--sub-b-b", "def"],

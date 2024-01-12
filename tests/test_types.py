@@ -19,13 +19,13 @@ class TestBase:
         e: str = field(metadata=dict(positional=True), default="e")
         f: int = field(default_factory=lambda: 1)
 
-    def test_a_required(self, capsys):
+    def test_a_required(self, capsys) -> None:
         with raises(SystemExit):
             parse(self.Config, [])
         captured = capsys.readouterr()
         assert "the following arguments are required: a, --b" in captured.err
 
-    def test_default(self):
+    def test_default(self) -> None:
         config = parse(self.Config, ["1", "--b", "b"])
         assert config.a == 1
         assert config.b == "b"
@@ -34,7 +34,7 @@ class TestBase:
         assert config.e == "e"
         assert config.f == 1
 
-    def test_shuffled(self):
+    def test_shuffled(self) -> None:
         config = parse(self.Config, ["--b", "b", "1"])
         assert config.a == 1
         assert config.b == "b"
@@ -43,11 +43,11 @@ class TestBase:
         "args, attr, value",
         [(["--c", "1.23"], "c", 1.23), (["--d", "123"], "d", 123), (["--f", "2"], "f", 2)],
     )
-    def test_args(self, args, attr, value):
+    def test_args(self, args, attr, value) -> None:
         config = parse(self.Config, ["1", "--b", "b"] + args)
         assert getattr(config, attr) == value
 
-    def test_second_positional(self):
+    def test_second_positional(self) -> None:
         config = parse(self.Config, ["1", "f", "--b", "b"])
         assert config.e == "f"
 
@@ -59,17 +59,17 @@ class TestBytes:
         b: bytes = field(default=b"b", metadata=dict(encoding="ascii"))
         z: int = 12
 
-    def test_default(self):
+    def test_default(self) -> None:
         config = parse(self.Config, [])
         assert config.a == b"a"
         assert config.b == b"b"
         assert config.z == 12
 
-    def test_encoding(self):
+    def test_encoding(self) -> None:
         config = parse(self.Config, ["--a", "ꀀ"])
         assert config.a == b"\xea\x80\x80"
 
-    def test_invalid_encoding(self, capsys):
+    def test_invalid_encoding(self, capsys) -> None:
         with raises(SystemExit):
             parse(self.Config, ["--b", "ꀀ"])
         captured = capsys.readouterr()
@@ -86,13 +86,13 @@ class TestList:
         e: Sequence[str] = ("a", "b")
         f: str = "dummy"
 
-    def test_a_required(self, capsys):
+    def test_a_required(self, capsys) -> None:
         with raises(SystemExit):
             parse(self.Config, [])
         captured = capsys.readouterr()
         assert "the following arguments are required: --a" in captured.err
 
-    def test_default(self):
+    def test_default(self) -> None:
         config = parse(self.Config, ["--a", "1"])
         assert config.a == [1]
         assert config.b == []
@@ -100,23 +100,23 @@ class TestList:
         assert config.e == ("a", "b")
         assert config.f == "dummy"
 
-    def test_list_args(self):
+    def test_list_args(self) -> None:
         config = parse(self.Config, ["--a", "1", "--b", "a", "b", "--f", "value"])
         assert config.b == ["a", "b"]
 
-    def test_sequence_args(self):
+    def test_sequence_args(self) -> None:
         config = parse(self.Config, ["--a", "1", "--d", "2.0", "2.5"])
         assert config.d == [2.0, 2.5]
 
-    def test_sequence_args_tuple(self):
+    def test_sequence_args_tuple(self) -> None:
         config = parse(self.Config, ["--a", "1", "--e", "d"])
         assert config.e == ["d"]
 
-    def test_positional_args(self):
+    def test_positional_args(self) -> None:
         config = parse(self.Config, ["x", "y", "--a", "1"])
         assert config.c == ["x", "y"]
 
-    def test_invalid_type(self, capsys):
+    def test_invalid_type(self, capsys) -> None:
         with raises(SystemExit):
             parse(self.Config, ["--a", "1", "--d", "abc"])
         captured = capsys.readouterr()
@@ -133,7 +133,7 @@ class TestUnion:
         e: Optional[Union[int, float]] = None
         f: float = 2.0
 
-    def test_default(self):
+    def test_default(self) -> None:
         config = parse(self.Config, ["--a", "1"])
         assert config.a == 1
         assert config.b is None
@@ -141,27 +141,27 @@ class TestUnion:
         assert config.d is None
         assert config.e is None
 
-    def test_parse_optional(self):
+    def test_parse_optional(self) -> None:
         config = parse(self.Config, ["--a", "1", "--b", "2"])
         assert config.b == 2
 
-    def test_parse_optional_invalid(self, capsys):
+    def test_parse_optional_invalid(self, capsys) -> None:
         with raises(SystemExit):
             parse(self.Config, ["--a", "1", "--b", "2.0"])
         captured = capsys.readouterr()
         assert "argument --b: invalid typing.Optional[int] value:" in captured.err
 
     @mark.parametrize("value, result", [("1.0", "1.0"), ("11", 11)])
-    def test_parse_union(self, value: str, result: Union[int, str]):
+    def test_parse_union(self, value: str, result: Union[int, str]) -> None:
         config = parse(self.Config, ["--a", "1", "--c", value])  # type: ignore
         assert config.c == result
 
-    def test_parse_inverted_optional(self):
+    def test_parse_inverted_optional(self) -> None:
         config = parse(self.Config, ["--a", "1", "--d", "2"])
         assert config.d == 2
 
     @mark.parametrize("value, result", [("1.0", 1.0), ("11", 11)])
-    def test_parse_optional_union(self, value: str, result: Union[int, str]):
+    def test_parse_optional_union(self, value: str, result: Union[int, str]) -> None:
         config = parse(self.Config, ["--a", "1", "--e", value])  # type: ignore
         assert config.e == result
 
@@ -175,24 +175,24 @@ if version_info >= (3, 10):
             b: int | None = None
             c: int | str = "b"
 
-        def test_default(self):
+        def test_default(self) -> None:
             config = parse(self.Config, ["--a", "1"])
             assert config.a == 1
             assert config.b is None
             assert config.c == "b"
 
-        def test_parse_optional(self):
+        def test_parse_optional(self) -> None:
             config = parse(self.Config, ["--a", "1", "--b", "2"])
             assert config.b == 2
 
-        def test_parse_optional_invalid(self, capsys):
+        def test_parse_optional_invalid(self, capsys) -> None:
             with raises(SystemExit):
                 parse(self.Config, ["--a", "1", "--b", "2.0"])
             captured = capsys.readouterr()
             assert "argument --b: invalid int | None value:" in captured.err
 
         @mark.parametrize("value, result", [("1.0", "1.0"), ("11", 11)])
-        def test_parse_union(self, value: str, result: Union[int, str]):
+        def test_parse_union(self, value: str, result: Union[int, str]) -> None:
             config = parse(self.Config, ["--a", "1", "--c", value])  # type: ignore
             assert config.c == result
 
@@ -207,18 +207,18 @@ class TestBool:
         extra: bool = field(default=False, metadata=dict(as_flags=True, short_option="-x"))
         z: int = 0
 
-    def test_required(self, capsys):
+    def test_required(self, capsys) -> None:
         with raises(SystemExit):
             parse(self.Config, [])
         captured = capsys.readouterr()
         assert "error: the following arguments are required: --a" in captured.err
 
     @mark.parametrize("arg, value", [("0", False), ("1", True), ("true", True), ("false", False)])
-    def test_values(self, arg: str, value: bool):
+    def test_values(self, arg: str, value: bool) -> None:
         config = parse(self.Config, ["--a", arg])  # type: ignore
         assert config.a == value
 
-    def test_defaults(self):
+    def test_defaults(self) -> None:
         config = parse(self.Config, ["--a", "false"])
         assert config.b is False
         assert config.c is True
@@ -226,13 +226,13 @@ class TestBool:
         assert config.extra is False
         assert config.z == 0
 
-    def test_invalid(self, capsys):
+    def test_invalid(self, capsys) -> None:
         with raises(SystemExit):
             parse(self.Config, ["--a", "false", "--b", "invalid"])
         captured = capsys.readouterr()
         assert "error: argument --b: invalid bool value:" in captured.err
 
-    def test_flags(self):
+    def test_flags(self) -> None:
         config = parse(self.Config, ["--a", "false", "--d"])
         assert config.d is True
 
@@ -248,13 +248,13 @@ class TestBool:
         config = parse(self.Config, ["--a", "false", "-x"])
         assert config.extra is True
 
-    def test_flag_argument(self, capsys):
+    def test_flag_argument(self, capsys) -> None:
         with raises(SystemExit):
             parse(self.Config, ["--a", "false", "--e", "invalid"])
         captured = capsys.readouterr()
         assert "error: unrecognized arguments: invalid" in captured.err
 
-    def test_bool_flag_no_default(self, capsys):
+    def test_bool_flag_no_default(self, capsys) -> None:
         @dataclass
         class TConfig:
             a: bool = field(metadata=dict(as_flags=True))
@@ -279,28 +279,28 @@ class TestDate:
             default_factory=datetime.now, metadata=dict(date_format="%m/%d/%Y %H:%M")
         )
 
-    def test_defaults(self):
+    def test_defaults(self) -> None:
         config = parse(self.Config, ["--a-date", "2000-01-01"])
         assert config.another_date == date(2345, 6, 7)
         assert config.a_formatted_date == date(2345, 6, 7)
 
-    def test_required(self, capsys):
+    def test_required(self, capsys) -> None:
         with raises(SystemExit):
             parse(self.Config, [])
         captured = capsys.readouterr()
         assert "error: the following arguments are required: --a-date" in captured.err
 
-    def test_optional(self):
+    def test_optional(self) -> None:
         config = parse(
             self.Config, ["--a-date", "2000-01-01", "--another-date", "2012-12-12", "--a-datetime", "2020-02-03 04:05"]
         )
         assert config.another_date == date(2012, 12, 12)
         assert config.a_datetime == datetime(2020, 2, 3, 4, 5)
 
-    def test_date_format(self):
+    def test_date_format(self) -> None:
         config = parse(self.Config, ["--a-date", "2000-01-01", "--a-formatted-date", "10/20/2000"])
         assert config.a_formatted_date == date(2000, 10, 20)
 
-    def test_datetime_format(self):
+    def test_datetime_format(self) -> None:
         config = parse(self.Config, ["--a-date", "2000-01-01", "--a-formatted-datetime", "8/16/1999 23:45"])
         assert config.a_formatted_datetime == datetime(1999, 8, 16, 23, 45)
