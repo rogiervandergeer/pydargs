@@ -230,9 +230,6 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
 
 
 def _add_subparsers(parser, field: Field, prefix: str = "") -> None:
-    if not _is_command(field):
-        raise TypeError("An action field must be a Union of dataclasses.")
-
     subparsers = parser.add_subparsers(
         dest=prefix + field.name,
         title=field.name,
