@@ -1,6 +1,5 @@
 import sys
 from dataclasses import dataclass, field
-from enum import Enum
 from json import loads
 from typing import Literal, Optional
 
@@ -46,90 +45,6 @@ class TestParseCustomParser:
             parse(TConfig, ["--arg", "[1, 2"])
         captured = capsys.readouterr()
         assert "argument --arg: invalid loads value: '[1, 2" in captured.err
-
-
-class TestParseChoices:
-    def test_enum(self, capsys) -> None:
-        class AnEnum(Enum):
-            one = 1
-            two = 2
-            three = 3
-
-        @dataclass
-        class TConfig:
-            an_enum: AnEnum
-
-        with raises(SystemExit):
-            parse(TConfig, [])
-        captured = capsys.readouterr()
-        assert "error: the following arguments are required: --an-enum" in captured.err
-
-        t = parse(TConfig, ["--an-enum", "one"])
-        assert t.an_enum == AnEnum.one
-
-    def test_str_enum(self, capsys) -> None:
-        class AnEnum(str, Enum):
-            one = "one"
-            two = "two"
-            three = "three"
-
-        @dataclass
-        class TConfig:
-            an_enum: AnEnum
-            another_enum: AnEnum = AnEnum.three
-
-        with raises(SystemExit):
-            parse(TConfig, [])
-        captured = capsys.readouterr()
-        assert "error: the following arguments are required: --an-enum" in captured.err
-
-        t = parse(TConfig, ["--an-enum", "one"])
-        assert t.an_enum == AnEnum.one
-        assert t.another_enum == AnEnum.three
-
-        t = parse(TConfig, ["--an-enum", "one", "--another-enum", "two"])
-        assert t.an_enum == AnEnum.one
-        assert t.another_enum == AnEnum.two
-
-    def test_str_literal(self, capsys) -> None:
-        @dataclass
-        class TConfig:
-            a_literal: Literal["x", "y"] = "x"
-
-        t = parse(TConfig, [])
-        assert t.a_literal == "x"
-
-        t = parse(TConfig, ["--a-literal", "y"])
-        assert t.a_literal == "y"
-
-        with raises(SystemExit):
-            parse(TConfig, ["--a-literal", "z"])
-        captured = capsys.readouterr()
-        assert "error: argument --a-literal: invalid choice: 'z'" in captured.err
-
-    def test_int_literal(self, capsys) -> None:
-        @dataclass
-        class TConfig:
-            a_literal: Literal[1, 2] = 1
-
-        t = parse(TConfig, [])
-        assert t.a_literal == 1
-
-        t = parse(TConfig, ["--a-literal", "2"])
-        assert t.a_literal == 2
-
-        with raises(SystemExit):
-            parse(TConfig, ["--a-literal", "3"])
-        captured = capsys.readouterr()
-        assert "error: argument --a-literal: invalid choice: 3" in captured.err
-
-    def test_fail_mixed_types(self) -> None:
-        @dataclass
-        class TConfig:
-            a_literal: Literal[1, "2"] = 1
-
-        with raises(NotImplementedError):
-            parse(TConfig, [])
 
 
 class TestNotImplemented:

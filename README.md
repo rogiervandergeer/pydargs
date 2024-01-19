@@ -52,7 +52,10 @@ will disable abbreviations for long options and set the program name to `myprogr
 
 The dataclass can have fields of the base types: `int`, `float`, `str`, `bool`, as well as:
 
-- **Enums** or **literals** comprised of those types.
+- **Literals** comprised of those types.
+- **Enums**, although these
+  are [not recommended](https://docs.python.org/3/library/argparse.html#choices) as they do not play nice in the help
+  messages. Only the enum _name_ is accepted as a valid input, not the _value_.
 - **Bytes**, with an optional `encoding` metadata field:
   `a_value: bytes = field(metadata=dict(encoding="ascii"))`, which defaults to utf-8.
 - **Date** and **datetime**, with an optional `date_format` metadata
