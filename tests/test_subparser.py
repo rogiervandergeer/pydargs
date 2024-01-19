@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Union
+from sys import version_info
 
 from pytest import mark, raises
 
@@ -52,6 +53,7 @@ class TestParseAction:
         captured = capsys.readouterr()
         assert help_string in captured.out.replace("\n", "")
 
+    @mark.skipif(version_info < (3, 10), reason="python3.9 prints s slightly different help")
     @mark.parametrize(
         "help_string",
         ["prog Action1 [-h] --a A [--b B]", "options:  -h"],
