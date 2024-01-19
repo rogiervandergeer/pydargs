@@ -195,6 +195,24 @@ optional arguments:
   --an-integer INT
 ```
 
+## `envvar_override`
+
+To override the value of a field by setting an environment variable, use field metadata `envvar_override`.
+Either by setting `envvar_override=True` or to the name of the envvar to use i.e. `envvar_override="MY_ENVVAR"`.
+
+```python
+@dataclass
+class Config:
+    # Can be overridden by setting envvar "EXAMPLE"
+    example: str = field(metadata=dict(envvar_override=True))
+    # Can be overridden by setting envvar "MY_ENVVAR"
+    other_example: int = field(metadata=dict(envvar_override="MY_ENVVAR"))
+```
+
+When the argument is also provided via the command line, the environment variable is ignored.
+We do not support overriding positional arguments via environment variables.
+We do not support overriding collection types (list, tuple, set, etc.) via environment variables.
+
 ## Nested Dataclasses
 
 Dataclasses may be nested; the type of a dataclass field may be another dataclass type:

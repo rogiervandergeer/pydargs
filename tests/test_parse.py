@@ -256,3 +256,86 @@ class TestKwargs:
             parse(self.Config, ["--so", "something_else"], allow_abbrev=False)
         captured = capsys.readouterr()
         assert "error: unrecognized arguments: --so something_else" in captured.err
+
+
+class SecretStr(str):
+    def __init__(self, value: str):
+        self._secret_value = value
+
+    def __str__(self):
+        return "*********"
+
+    def __repr__(self):
+        return self.__str__()
+
+    def get_secret_value(self):
+        return self._secret_value
+
+
+class TestEnvironmentVariables:
+    @dataclass
+    class Config:
+        my_property: str = field(default="default_value", metadata=dict(envvar_override=True))
+        a: str = field(default_factory=lambda: "default_value", metadata=dict(envvar_override="OTHER_ENVVAR"))
+        z: str = "dummy"
+
+    @dataclass
+    class ConfigWithSecret:
+        my_property: SecretStr = field(default=SecretStr("default_value"), metadata=dict(envvar_override=True))
+        z: str = "dummy"
+
+    @dataclass
+    class IncorrectConfig:
+        my_property: list[str] = field(default_factory=lambda: ["default_value"], metadata=dict(envvar_override=True))
+
+    def test_default(self):
+        config = parse(self.Config)
+        assert config.my_property == "default_value"
+        assert config.z == "dummy"
+
+    def test_unsupported_type(self, monkeypatch):
+        monkeypatch.setenv("MY_PROPERTY", "new_value")
+
+        with raises(TypeError):
+            parse(self.IncorrectConfig)
+
+    def test_override(self, monkeypatch):
+        monkeypatch.setenv("MY_PROPERTY", "new_value")
+        config = parse(self.Config)
+        assert config.my_property == "new_value"
+        assert config.z == "dummy"
+
+    def test_double_override(self, monkeypatch):
+        monkeypatch.setenv("MY_PROPERTY", "new_value")
+        config = parse(self.Config, ["--my-property", "another_value"])
+        assert config.my_property == "another_value"
+        assert config.z == "dummy"
+
+    def test_override_by_different_key(self, monkeypatch):
+        monkeypatch.setenv("OTHER_ENVVAR", "new_value")
+        config = parse(self.Config)
+        assert config.my_property == "default_value"
+        assert config.a == "new_value"
+        assert config.z == "dummy"
+
+    def test_secret_envvar(self, monkeypatch, capsys):
+        monkeypatch.setenv("MY_PROPERTY", "my_secret")
+        config = parse(self.ConfigWithSecret)
+        assert str(config.my_property) == "*********"
+        assert config.my_property.get_secret_value() == "my_secret"
+        assert config.z == "dummy"
+
+        # Make sure the secret is not printed
+        print(config)
+        captured = capsys.readouterr()
+        assert "my_secret" not in captured.out
+
+    def test_secret_envvar_help(self, monkeypatch, capsys):
+        monkeypatch.setenv("MY_PROPERTY", "my_secret")
+
+        with raises(SystemExit):
+            parse(self.ConfigWithSecret, ["--help"])
+
+        # Make sure the secret is not printed
+        captured = capsys.readouterr()
+        assert "my_secret" not in captured.out

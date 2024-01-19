@@ -1,4 +1,5 @@
 import sys
+import os
 from argparse import ArgumentParser, BooleanOptionalAction, Namespace, SUPPRESS
 from collections.abc import Sequence
 from dataclasses import MISSING, fields
@@ -81,14 +82,32 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
         argument_kwargs: dict[str, Any] = dict()
         field_has_default = field.default is not MISSING or field.default_factory is not MISSING
         argument_kwargs["help"] = field.metadata.get("help", "")
+        positional = field.metadata.get("positional", False)
+        short_option = field.metadata.get("short_option")
+        override_by_envvar = field.metadata.get("envvar_override", False)
+        origin = get_origin(field.type)
+
+        if override_by_envvar and positional:
+            raise ValueError("Positional arguments cannot be overridden by envvars.")
+
+        if override_by_envvar:
+            if isinstance(override_by_envvar, str):
+                envvar_name = override_by_envvar
+            else:
+                envvar_name = field.name.upper()
+
+            if value_from_env := os.environ.get(envvar_name):
+                if origin and any(origin is cls for cls in (Sequence, list, tuple, set)):
+                    raise TypeError("Overriding default_factory properties by envvars is not supported.")
+                argument_kwargs["default"] = value_from_env
+
         if field.default is not MISSING:
             if len(argument_kwargs["help"]):
                 argument_kwargs["help"] += " "
             argument_kwargs["help"] += f"(default: {field.default})"
         if "metavar" in field.metadata:
             argument_kwargs["metavar"] = field.metadata["metavar"]
-        positional = field.metadata.get("positional", False)
-        short_option = field.metadata.get("short_option")
+
         if positional:
             if short_option:
                 raise ValueError("Short options are not supported for positional arguments.")
@@ -101,7 +120,6 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
                     else field.default
                 )
                 argument_kwargs["nargs"] = "?"
-
         else:
             arguments = [f"--{(prefix+field.name).replace('_', '-')}"]
             if short_option:
@@ -115,7 +133,7 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
                 type=parser_fct,
                 **argument_kwargs,
             )
-        elif origin := get_origin(field.type):
+        elif origin:
             if origin is Sequence or origin is list:
                 argument_kwargs["nargs"] = "*" if field_has_default else "+"
                 parser_or_group.add_argument(
