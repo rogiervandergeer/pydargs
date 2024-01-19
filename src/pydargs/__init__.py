@@ -177,7 +177,7 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
             parser_or_group.add_argument(
                 *arguments,
                 choices=list(field.type),
-                type=lambda x: field.type[x],
+                type=named_partial(_parse_enum_key, _display_name=field.type.__name__, enum_type=field.type),
                 **argument_kwargs,
             )
         elif field.type is bytes:
@@ -208,6 +208,13 @@ def _parse_bool(arg: str) -> bool:
 def _parse_datetime(date_string: str, is_date: bool, date_format: Optional[str] = None) -> Union[date, datetime]:
     result = datetime.strptime(date_string, date_format) if date_format else datetime.fromisoformat(date_string)
     return result.date() if is_date else result
+
+
+def _parse_enum_key(key: str, enum_type: Type[Enum]) -> Enum:
+    try:
+        return enum_type[key]
+    except KeyError:
+        raise TypeError
 
 
 def _parse_union(value: str, union_type: Type) -> Any:

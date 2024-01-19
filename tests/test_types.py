@@ -1,8 +1,9 @@
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime
+from enum import Enum
 from sys import version_info
-from typing import Optional, Union
+from typing import Optional, Union, Literal
 
 from pytest import mark, raises
 
@@ -74,6 +75,39 @@ class TestBytes:
             parse(self.Config, ["--b", "ꀀ"])
         captured = capsys.readouterr()
         assert "argument --b: invalid ascii value: 'ꀀ'\n" in captured.err
+
+
+class TestLiteral:
+    @dataclass
+    class Config:
+        a: Literal[1, 2] = field(metadata=dict(positional=True))
+        b: Literal["abc", "def"] = "def"
+        z: int = 12
+
+    def test_default(self):
+        config = parse(self.Config, ["2"])
+        assert config.a == 2
+        assert config.b == "def"
+        assert config.z == 12
+
+    def test_args(self):
+        config = parse(self.Config, ["--b", "abc", "1"])
+        assert config.a == 1
+        assert config.b == "abc"
+
+    def test_invalid(self, capsys):
+        with raises(SystemExit):
+            parse(self.Config, ["3"])
+        captured = capsys.readouterr()
+        assert "argument a: invalid choice: 3 " in captured.err
+
+    def test_fail_mixed_types(self):
+        @dataclass
+        class TConfig:
+            a_literal: Literal[1, "2"] = 1
+
+        with raises(NotImplementedError):
+            parse(TConfig, [])
 
 
 class TestList:
@@ -304,3 +338,54 @@ class TestDate:
     def test_datetime_format(self):
         config = parse(self.Config, ["--a-date", "2000-01-01", "--a-formatted-datetime", "8/16/1999 23:45"])
         assert config.a_formatted_datetime == datetime(1999, 8, 16, 23, 45)
+
+
+class AnIntEnum(Enum):
+    one = 1
+    two = 2
+    three = 3
+
+
+class AStrEnum(str, Enum):
+    eleven = "11"
+    twelve = "12"
+    thirteen = "13"
+
+
+class TestEnum:
+    @dataclass
+    class Config:
+        enum_one: AnIntEnum
+        enum_two: AStrEnum = AStrEnum.twelve
+        a_dummy_float: float = 1.0
+
+    def test_defaults(self):
+        config = parse(self.Config, ["--enum-one", "two"])
+        assert config.enum_one is AnIntEnum.two
+        assert config.enum_two is AStrEnum.twelve
+        assert config.a_dummy_float == 1.0
+
+    def test_required(self, capsys):
+        with raises(SystemExit):
+            parse(self.Config, [])
+        captured = capsys.readouterr()
+        assert "error: the following arguments are required: --enum-one" in captured.err
+
+    def test_optional(self):
+        config = parse(self.Config, ["--enum-one", "three", "--enum-two", "eleven", "--a-dummy-float", "42"])
+        assert config.enum_one is AnIntEnum.three
+        assert config.enum_two is AStrEnum.eleven
+        assert config.a_dummy_float == 42.0
+
+    def test_invalid(self, capsys):
+        with raises(SystemExit):
+            parse(self.Config, ["--enum-one", "four"])
+        captured = capsys.readouterr()
+        assert "--enum-one: invalid AnIntEnum value: 'four'" in captured.err
+
+    def test_help(self, capsys):
+        # Verify the help message
+        with raises(SystemExit):
+            parse(self.Config, ["--help"], prog="prog")  # type: ignore
+        captured = capsys.readouterr()
+        assert "{AnIntEnum.one,AnIntEnum.two,AnIntEnum.three}" in captured.out.replace("\n", "")
