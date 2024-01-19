@@ -102,8 +102,9 @@ class TestParseRequiredSubConfig:
         sub: SubConfig = field()
         flag: bool = field(default=False, metadata=dict(as_flags=True))
 
-    def test_parse(self):
+    def test_parse(self, recwarn):
         config = parse(self.Config, ["mode"])
+        assert len(recwarn) == 0
         assert config.mode == "mode"
         assert config.sub.a == 42
         assert config.sub.b == "abc"

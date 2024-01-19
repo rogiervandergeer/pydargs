@@ -143,7 +143,7 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
         elif hasattr(field.type, "__dataclass_fields__"):
             if positional:
                 raise ValueError("Dataclasses may not be positional arguments.")
-            if field.default_factory is not None and field.default_factory != field.type:
+            if field_has_default and field.default_factory != field.type:
                 warn(f"Non-standard default of field {field.name} is ignored by pydargs.", UserWarning)
             # Recursively add arguments for the nested dataclasses
             _add_arguments(parser, field.type, prefix=f"{prefix}{field.name}_")
