@@ -287,3 +287,6 @@ Note that:
 - Any dataclass can not contain more than one subcommand-field.
 - Sub-commands can be nested and mixed with nested dataclasses.
 - Any positional fields defined after a subcommand-field can not be parsed.
+- Subparsers handle all arguments that come after the command; so all global arguments must come before the command.
+  In the above example this means that  `entrypoint --verbose Command2 string` 
+  is valid but `entrypoint Command2 string --verbose` is not.
