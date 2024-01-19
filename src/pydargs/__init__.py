@@ -1,11 +1,12 @@
 import sys
 from argparse import ArgumentParser, BooleanOptionalAction, Namespace, SUPPRESS
 from collections.abc import Sequence
-from dataclasses import Field, MISSING, dataclass, fields
+from dataclasses import Field, MISSING, fields
 from datetime import date, datetime
 from enum import Enum
 from typing import (
     Any,
+    ClassVar,
     Literal,
     Optional,
     Protocol,
@@ -27,12 +28,11 @@ if sys.version_info >= (3, 10):
     UNION_TYPES.add(UnionType)
 
 
-@dataclass
-class ADataclass(Protocol):
-    ...
+class DataClassProtocol(Protocol):
+    __dataclass_fields__: ClassVar[dict]
 
 
-Dataclass = TypeVar("Dataclass", bound=ADataclass)
+Dataclass = TypeVar("Dataclass", bound=DataClassProtocol)
 
 
 def parse(tp: Type[Dataclass], args: Optional[list[str]] = None, **kwargs: Any) -> Dataclass:
@@ -174,7 +174,7 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
         elif hasattr(field.type, "__dataclass_fields__"):
             if positional:
                 raise ValueError("Dataclasses may not be positional arguments.")
-            if field.default_factory is not None and field.default_factory != field.type:
+            if field_has_default and field.default_factory != field.type:
                 warn(f"Non-standard default of field {field.name} is ignored by pydargs.", UserWarning)
             # Recursively add arguments for the nested dataclasses
             _add_arguments(parser, field.type, prefix=f"{prefix}{field.name}_")
@@ -210,7 +210,7 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
             parser_or_group.add_argument(
                 *arguments,
                 choices=list(field.type),
-                type=lambda x: field.type[x],
+                type=named_partial(_parse_enum_key, _display_name=field.type.__name__, enum_type=field.type),
                 **argument_kwargs,
             )
         elif field.type is bytes:
@@ -265,6 +265,13 @@ def _parse_bool(arg: str) -> bool:
 def _parse_datetime(date_string: str, is_date: bool, date_format: Optional[str] = None) -> Union[date, datetime]:
     result = datetime.strptime(date_string, date_format) if date_format else datetime.fromisoformat(date_string)
     return result.date() if is_date else result
+
+
+def _parse_enum_key(key: str, enum_type: Type[Enum]) -> Enum:
+    try:
+        return enum_type[key]
+    except KeyError:
+        raise TypeError
 
 
 def _parse_union(value: str, union_type: Type) -> Any:

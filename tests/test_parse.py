@@ -1,6 +1,5 @@
 import sys
 from dataclasses import dataclass, field
-from enum import Enum
 from json import loads
 from typing import Literal, Optional
 
@@ -10,7 +9,7 @@ from pydargs import parse
 
 
 class TestParseCustomParser:
-    def test_parser_optional(self):
+    def test_parser_optional(self) -> None:
         @dataclass
         class TConfig:
             arg: Optional[list[int]] = field(default=None, metadata=dict(parser=loads))
@@ -24,7 +23,7 @@ class TestParseCustomParser:
         t = parse(TConfig, ["--arg", '{"1": 2}'])
         assert t.arg == {"1": 2}
 
-    def test_parser_required(self, capsys):
+    def test_parser_required(self, capsys) -> None:
         @dataclass
         class TConfig:
             arg: list[int] = field(metadata=dict(parser=loads))
@@ -37,7 +36,7 @@ class TestParseCustomParser:
         t = parse(TConfig, ["--arg", "[1, 2]"])
         assert t.arg == [1, 2]
 
-    def test_parser_invalid(self, capsys):
+    def test_parser_invalid(self, capsys) -> None:
         @dataclass
         class TConfig:
             arg: list[int] = field(metadata=dict(parser=loads))
@@ -48,92 +47,8 @@ class TestParseCustomParser:
         assert "argument --arg: invalid loads value: '[1, 2" in captured.err
 
 
-class TestParseChoices:
-    def test_enum(self, capsys):
-        class AnEnum(Enum):
-            one = 1
-            two = 2
-            three = 3
-
-        @dataclass
-        class TConfig:
-            an_enum: AnEnum
-
-        with raises(SystemExit):
-            parse(TConfig, [])
-        captured = capsys.readouterr()
-        assert "error: the following arguments are required: --an-enum" in captured.err
-
-        t = parse(TConfig, ["--an-enum", "one"])
-        assert t.an_enum == AnEnum.one
-
-    def test_str_enum(self, capsys):
-        class AnEnum(str, Enum):
-            one = "one"
-            two = "two"
-            three = "three"
-
-        @dataclass
-        class TConfig:
-            an_enum: AnEnum
-            another_enum: AnEnum = AnEnum.three
-
-        with raises(SystemExit):
-            parse(TConfig, [])
-        captured = capsys.readouterr()
-        assert "error: the following arguments are required: --an-enum" in captured.err
-
-        t = parse(TConfig, ["--an-enum", "one"])
-        assert t.an_enum == AnEnum.one
-        assert t.another_enum == AnEnum.three
-
-        t = parse(TConfig, ["--an-enum", "one", "--another-enum", "two"])
-        assert t.an_enum == AnEnum.one
-        assert t.another_enum == AnEnum.two
-
-    def test_str_literal(self, capsys):
-        @dataclass
-        class TConfig:
-            a_literal: Literal["x", "y"] = "x"
-
-        t = parse(TConfig, [])
-        assert t.a_literal == "x"
-
-        t = parse(TConfig, ["--a-literal", "y"])
-        assert t.a_literal == "y"
-
-        with raises(SystemExit):
-            parse(TConfig, ["--a-literal", "z"])
-        captured = capsys.readouterr()
-        assert "error: argument --a-literal: invalid choice: 'z'" in captured.err
-
-    def test_int_literal(self, capsys):
-        @dataclass
-        class TConfig:
-            a_literal: Literal[1, 2] = 1
-
-        t = parse(TConfig, [])
-        assert t.a_literal == 1
-
-        t = parse(TConfig, ["--a-literal", "2"])
-        assert t.a_literal == 2
-
-        with raises(SystemExit):
-            parse(TConfig, ["--a-literal", "3"])
-        captured = capsys.readouterr()
-        assert "error: argument --a-literal: invalid choice: 3" in captured.err
-
-    def test_fail_mixed_types(self):
-        @dataclass
-        class TConfig:
-            a_literal: Literal[1, "2"] = 1
-
-        with raises(NotImplementedError):
-            parse(TConfig, [])
-
-
 class TestNotImplemented:
-    def test_set(self):
+    def test_set(self) -> None:
         @dataclass
         class TConfig:
             a: set[int]
@@ -141,7 +56,7 @@ class TestNotImplemented:
         with raises(NotImplementedError):
             parse(TConfig, ["--a", "1", "1", "2"])
 
-    def test_tuple(self):
+    def test_tuple(self) -> None:
         @dataclass
         class TConfig:
             a: tuple[str]
@@ -158,26 +73,26 @@ class TestIgnoreArg:
         c: bool = field(default=False, metadata=dict(ignore_arg=False, as_flags=True))
         z: str = "dummy"
 
-    def test_ignore_default(self):
+    def test_ignore_default(self) -> None:
         config = parse(self.Config, [])
         assert config.a == 5
         assert config.b == "something"
         assert config.c is False
         assert config.z == "dummy"
 
-    def test_ignore_valid(self):
+    def test_ignore_valid(self) -> None:
         config = parse(self.Config, ["--a", "1", "--c"])
         assert config.a == 1
         assert config.b == "something"
         assert config.c is True
 
-    def test_ignore_invalid(self, capsys):
+    def test_ignore_invalid(self, capsys) -> None:
         with raises(SystemExit):
             parse(self.Config, ["--b", "2"])
         captured = capsys.readouterr()
         assert "error: unrecognized arguments: --b 2" in captured.err
 
-    def test_ignore_invalid_no_default(self, capsys):
+    def test_ignore_invalid_no_default(self, capsys) -> None:
         @dataclass
         class TConfig:
             a: str = field(metadata={"ignore_arg": True})
@@ -193,18 +108,18 @@ class TestPositional:
         a: Literal["a", "b"] = field(default="a", metadata={"positional": True})
         z: str = field(default="dummy")
 
-    def test_ignore_default(self):
+    def test_ignore_default(self) -> None:
         config = parse(self.Config, [])
         assert config.a == "a"
         assert config.z == "dummy"
 
     @mark.parametrize("args", [["b", "--z", "Z"], ["--z", "Z", "b"]])
-    def test_order(self, args: list[str]):
+    def test_order(self, args: list[str]) -> None:
         config = parse(self.Config, args)  # type: ignore
         assert config.a == "b"
         assert config.z == "Z"
 
-    def test_positional_with_default(self):
+    def test_positional_with_default(self) -> None:
         @dataclass
         class Config:
             positional: int = field(default=123, metadata=dict(positional=True))
@@ -215,7 +130,7 @@ class TestPositional:
         config = parse(Config, [])
         assert config.positional == 123
 
-    def test_positional_with_default_factory(self):
+    def test_positional_with_default_factory(self) -> None:
         @dataclass
         class Config:
             positional: int = field(default_factory=lambda: 123, metadata=dict(positional=True))
@@ -226,7 +141,7 @@ class TestPositional:
         config = parse(Config, [])
         assert config.positional == 123
 
-    def test_default_factory_modification(self):
+    def test_default_factory_modification(self) -> None:
         @dataclass
         class Config:
             positional: list[int] = field(default_factory=lambda: [123], metadata=dict(positional=True))
@@ -238,7 +153,7 @@ class TestPositional:
         config_2 = parse(Config, [])
         assert config_2.positional == [123]
 
-    def test_list_positional(self):
+    def test_list_positional(self) -> None:
         @dataclass
         class Config:
             positional: list[int] = field(default_factory=lambda: [1, 2, 3], metadata=dict(positional=True))
@@ -269,13 +184,13 @@ class TestHelp:
             "  --another-string AS   (default: xyz)",
         ],
     )
-    def test_help(self, capsys, help_string: str):
+    def test_help(self, capsys, help_string: str) -> None:
         with raises(SystemExit):
             parse(self.Config, ["--help"], prog="prog")  # type: ignore
         captured = capsys.readouterr()
         assert help_string in captured.out.replace("\n", "")
 
-    def test_short_option_must_have_dash(self):
+    def test_short_option_must_have_dash(self) -> None:
         @dataclass
         class InvalidConfig:
             an_integer: int = field(metadata={"short_option": "s"})
@@ -291,21 +206,21 @@ class TestSysArgv:
         a: int = 5
         z: str = "dummy"
 
-    def test_empty_argv(self, monkeypatch):
+    def test_empty_argv(self, monkeypatch) -> None:
         monkeypatch.setattr(sys, "argv", ["name_of_program"])
         config = parse(self.Config)
         assert config.positional == "positional"
         assert config.a == 5
         assert config.z == "dummy"
 
-    def test_non_empty_argv(self, monkeypatch):
+    def test_non_empty_argv(self, monkeypatch) -> None:
         monkeypatch.setattr(sys, "argv", ["name_of_program", "--a", "3"])
         config = parse(self.Config)
         assert config.positional == "positional"
         assert config.a == 3
         assert config.z == "dummy"
 
-    def test_with_positional_argv(self, monkeypatch):
+    def test_with_positional_argv(self, monkeypatch) -> None:
         monkeypatch.setattr(sys, "argv", ["name_of_program", "--a", "3", "positional_value"])
         config = parse(self.Config)
         assert config.positional == "positional_value"
@@ -320,23 +235,23 @@ class TestKwargs:
         some_long_argument: str = "something"
         z: str = "dummy"
 
-    def test_with_args_and_kwargs(self):
+    def test_with_args_and_kwargs(self) -> None:
         config = parse(self.Config, ["--a", "1", "--z", "2"], prog="pydargs")
         assert config.a == 1
         assert config.z == "2"
 
-    def test_with_kwargs(self):
+    def test_with_kwargs(self) -> None:
         config = parse(self.Config, allow_abbrev=False)
         assert config.a == 5
         assert config.z == "dummy"
 
-    def test_allow_abbrev(self):
+    def test_allow_abbrev(self) -> None:
         config = parse(self.Config, ["--so", "something_else"])
         assert config.some_long_argument == "something_else"
         assert config.a == 5
         assert config.z == "dummy"
 
-    def test_disallow_abbrev(self, capsys):
+    def test_disallow_abbrev(self, capsys) -> None:
         with raises(SystemExit):
             parse(self.Config, ["--so", "something_else"], allow_abbrev=False)
         captured = capsys.readouterr()

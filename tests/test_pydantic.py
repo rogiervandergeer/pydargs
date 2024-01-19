@@ -27,7 +27,7 @@ class TestPydanticDataclass:
 
         return Config
 
-    def test_instantiate(self, config):
+    def test_instantiate(self, config) -> None:
         c = parse(config, ["1", "--b", "b"])
         assert c.a == 1
         assert c.b == "b"
@@ -36,7 +36,7 @@ class TestPydanticDataclass:
         assert c.e == "e"
         assert c.f == 1
 
-    def test_validation(self, config):
+    def test_validation(self, config) -> None:
         c = parse(config, ["1", "--b", "b", "--c", "1.5"])
         assert c.c == approx(1.5)
 
