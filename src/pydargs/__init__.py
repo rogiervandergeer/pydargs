@@ -127,7 +127,6 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
                     else field.default
                 )
                 argument_kwargs["nargs"] = "?"
-            # argument_kwargs["dest"] = prefix + field.name
             argument_kwargs["metavar"] = field.metadata.get("metavar", (prefix + field.name).replace("+", ""))
 
         else:
