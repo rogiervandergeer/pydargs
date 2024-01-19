@@ -237,13 +237,13 @@ def _add_subparsers(parser, field: Field, prefix: str = "") -> None:
         help=field.metadata.get("help"),
     )
 
-    for arg in get_args(field.type):
+    for command in get_args(field.type):
         subparser = subparsers.add_parser(
-            str(arg.__name__),
+            str(command.__name__),
             argument_default=SUPPRESS,
-            aliases=[str(arg.__name__).lower()],
+            aliases=[str(command.__name__).lower()],
         )
-        _add_arguments(subparser, arg, prefix=f"{prefix}+")
+        _add_arguments(subparser, command, prefix=f"{prefix}+")
 
 
 def _is_command(field: Field) -> bool:
