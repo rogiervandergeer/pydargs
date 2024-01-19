@@ -62,8 +62,6 @@ class TestParseAction:
         with raises(SystemExit):
             parse(self.Config, ["Action1", "--help"], prog="prog")  # type: ignore
         captured = capsys.readouterr()
-        for line in captured.out.split("\n"):
-            print(line)
         assert help_string in captured.out.replace("\n", "")
         assert "prog Action1 [-h] --a A [--b B]" in captured.out.replace("\n", "")
 
