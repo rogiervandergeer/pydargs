@@ -53,7 +53,7 @@ class TestParseAction:
         captured = capsys.readouterr()
         assert help_string in captured.out.replace("\n", "")
 
-    @mark.skipif(version_info < (3, 10), reason="python3.9 prints s slightly different help")
+    @mark.skipif(version_info < (3, 10), reason="python3.9 prints a slightly different help message")
     @mark.parametrize(
         "help_string",
         ["prog Action1 [-h] --a A [--b B]", "options:  -h"],
