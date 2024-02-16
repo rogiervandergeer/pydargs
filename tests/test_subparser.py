@@ -161,7 +161,7 @@ class TestCollision:
     @dataclass
     class Config:
         command: Union[Command1, Command2]
-        a: int = 2
+        a: int = 2  # Command1 also has a field named 'a'
         d: int = 3
 
     def test_help(self, capsys):
