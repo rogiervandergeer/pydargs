@@ -69,7 +69,11 @@ def _create_object(tp: Type[Dataclass], namespace: Namespace, prefix: str = "") 
             if chosen_action is not None:
                 for arg in get_args(field.type):
                     if arg.__name__ == chosen_action:
-                        setattr(namespace, prefix + field.name, _create_object(arg, namespace, prefix=f"{prefix}+"))
+                        setattr(
+                            namespace,
+                            prefix + field.name,
+                            _create_object(arg, namespace, prefix=f"{prefix}{field.name}_"),
+                        )
                         break
                 if not hasattr(namespace, prefix + field.name):
                     raise ValueError("Invalid action.", chosen_action)
@@ -91,16 +95,18 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
     return parser
 
 
-def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = "") -> ArgumentParser:
-    parser_or_group = (  # Only add a group if there is a prefix that isn't "" or "+".
-        parser.add_argument_group(prefix.strip("_")) if prefix.replace("+", "") else parser
+def _add_arguments(
+    parser: ArgumentParser, tp: Type[Dataclass], arg_prefix: str = "", dest_prefix: str = ""
+) -> ArgumentParser:
+    parser_or_group = (  # Only add a group if there is a arg_prefix that isn't "".
+        parser.add_argument_group(arg_prefix.strip("_")) if arg_prefix else parser
     )
     has_subparser = False
     for field in fields(tp):
         if field.metadata.get("ignore_arg", False):
             continue
         if _is_command(field):
-            _add_subparsers(parser, field, prefix)
+            _add_subparsers(parser, field, arg_prefix, dest_prefix)
             has_subparser = True
             continue
 
@@ -118,7 +124,7 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
                 warn("Positional arguments defined after a subparser cannot be parsed.")
             if short_option:
                 raise ValueError("Short options are not supported for positional arguments.")
-            arguments = [prefix + field.name.replace("+", "")]
+            arguments = [dest_prefix + field.name]
             if field_has_default:
                 # Positional arguments that are not required must have a valid default
                 argument_kwargs["default"] = (
@@ -127,14 +133,14 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
                     else field.default
                 )
                 argument_kwargs["nargs"] = "?"
-            argument_kwargs["metavar"] = field.metadata.get("metavar", (prefix + field.name).replace("+", ""))
+            argument_kwargs["metavar"] = field.metadata.get("metavar", (arg_prefix + field.name))
 
         else:
-            arguments = [f"--{(prefix+field.name).replace('_', '-').replace('+', '')}"]
+            arguments = [f"--{(arg_prefix + field.name).replace('_', '-')}"]
             if short_option:
                 arguments = [short_option] + arguments
-            argument_kwargs["dest"] = prefix + field.name
-            argument_kwargs["metavar"] = field.metadata.get("metavar", (prefix + field.name).replace("+", "").upper())
+            argument_kwargs["dest"] = dest_prefix + field.name
+            argument_kwargs["metavar"] = field.metadata.get("metavar", (arg_prefix + field.name).upper())
             argument_kwargs["required"] = not field_has_default
 
         if parser_fct := field.metadata.get("parser", None):
@@ -176,7 +182,7 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
             if field_has_default and field.default_factory != field.type:
                 warn(f"Non-standard default of field {field.name} is ignored by pydargs.", UserWarning)
             # Recursively add arguments for the nested dataclasses
-            _add_arguments(parser, field.type, prefix=f"{prefix}{field.name}_")
+            _add_arguments(parser, field.type, f"{arg_prefix}{field.name}_", f"{dest_prefix}{field.name}_")
         elif field.type in (date, datetime):
             parser_or_group.add_argument(
                 *arguments,
@@ -192,11 +198,7 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
             if field.metadata.get("as_flags", False):
                 if positional:
                     raise ValueError("A field cannot be positional as well as be represented by flags.")
-                parser_or_group.add_argument(
-                    *arguments,
-                    action=BooleanOptionalAction,
-                    **argument_kwargs,
-                )
+                parser_or_group.add_argument(*arguments, action=BooleanOptionalAction, **argument_kwargs)
             else:
                 parser_or_group.add_argument(
                     *arguments,
@@ -228,9 +230,9 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
     return parser
 
 
-def _add_subparsers(parser, field: Field, prefix: str = "") -> None:
+def _add_subparsers(parser: ArgumentParser, field: Field, prefix: str, dest_prefix: str) -> None:
     subparsers = parser.add_subparsers(
-        dest=prefix + field.name,
+        dest=dest_prefix + field.name,
         title=field.name,
         required=field.default is MISSING and field.default_factory is MISSING,
         help=field.metadata.get("help"),
@@ -242,7 +244,8 @@ def _add_subparsers(parser, field: Field, prefix: str = "") -> None:
             argument_default=SUPPRESS,
             aliases=[str(command.__name__).lower()],
         )
-        _add_arguments(subparser, command, prefix=f"{prefix}+")
+        # Do not add the field name to the arg prefix -- argument names should not be prefixed with the command name.
+        _add_arguments(subparser, command, arg_prefix=prefix, dest_prefix=f"{dest_prefix}{field.name}_")
 
 
 def _is_command(field: Field) -> bool:
