@@ -28,7 +28,7 @@ class Command3:
 
 @dataclass
 class Command4:
-    sub_action: Union[Command1, Command2]
+    sub_command: Union[Command1, Command2]
     string4: str = "four"
 
 
@@ -153,8 +153,8 @@ class TestNestedAction:
     def test_args(self, capsys):
         config = parse(self.Config, ["Command4", "Command1", "--a", "-3"])
         assert isinstance(config.mode, Command4)
-        assert isinstance(config.mode.sub_action, Command1)
-        assert config.mode.sub_action.a == -3
+        assert isinstance(config.mode.sub_command, Command1)
+        assert config.mode.sub_command.a == -3
 
 
 class TestCollision:
@@ -209,16 +209,16 @@ class TestPositionalAndSubparser:
 class TestParseActionInNested:
     @dataclass
     class Config:
-        sub: Command4
+        cmd: Command4
         var: int = 12
         flag: bool = field(default=False, metadata=dict(as_flags=True))
 
     @mark.parametrize(
         "help_string",
         [
-            "usage: prog [-h] [--sub-string4 SUB_STRING4] [--var VAR] [--flag | --no-flag]",
+            "usage: prog [-h] [--cmd-string4 CMD_STRING4] [--var VAR] [--flag | --no-flag]",
             "{Command1,command1,Command2,command2} ...",
-            "action:  {Command1,command1,Command2,command2}",
+            "sub_command:  {Command1,command1,Command2,command2}",
         ],
     )
     def test_help(self, capsys, help_string: str):
@@ -231,18 +231,18 @@ class TestParseActionInNested:
         with raises(SystemExit):
             parse(self.Config, ["Command1", "--help"], prog="prog")  # type: ignore
         captured = capsys.readouterr()
-        assert "prog Command1 [-h] --sub-a SUB_A [--sub-b SUB_B]" in captured.out.replace("\n", "")
+        assert "prog Command1 [-h] --cmd-a CMD_A [--cmd-b CMD_B]" in captured.out.replace("\n", "")
 
     def test_is_required(self, capsys):
         with raises(SystemExit):
             parse(self.Config, [])
         captured = capsys.readouterr()
-        assert "the following arguments are required: sub_sub_action" in captured.err
+        assert "the following arguments are required: cmd_sub_command" in captured.err
 
     def test_flag(self, capsys):
         config = parse(self.Config, ["--flag", "Command2"])
-        assert isinstance(config.sub, Command4)
-        assert isinstance(config.sub.sub_action, Command2)
+        assert isinstance(config.cmd, Command4)
+        assert isinstance(config.cmd.sub_command, Command2)
         assert config.flag is True
 
         # Verify that the order matters
@@ -252,12 +252,12 @@ class TestParseActionInNested:
         assert "unrecognized arguments: --flag" in captured.err
 
     def test_action_args(self):
-        config = parse(self.Config, ["Command1", "--sub-a", "12"])
-        assert config.sub.sub_action.a == 12
+        config = parse(self.Config, ["Command1", "--cmd-a", "12"])
+        assert config.cmd.sub_command.a == 12
         assert config.flag is False
 
     def test_parse_positional(self):
-        config = parse(self.Config, ["Command2", "positional", "--sub-c", "12"])
-        assert config.sub.sub_action.c == 12
-        assert config.sub.sub_action.e == "positional"
+        config = parse(self.Config, ["Command2", "positional", "--cmd-c", "12"])
+        assert config.cmd.sub_command.c == 12
+        assert config.cmd.sub_command.e == "positional"
         assert config.flag is False
