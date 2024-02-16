@@ -293,6 +293,3 @@ Note that:
 - Subparsers handle all arguments that come after the command; so all global arguments must come before the command.
   In the above example this means that  `entrypoint --verbose Command2 string`
   is valid but `entrypoint Command2 string --verbose` is not.
-- Subparsers handle all arguments that come after the command; so all global arguments must come before the command.
-  In the above example this means that  `entrypoint --verbose Command2 string`
-  is valid but `entrypoint Command2 string --verbose` is not.
