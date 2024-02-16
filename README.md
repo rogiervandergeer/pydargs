@@ -197,6 +197,49 @@ optional arguments:
   --an-integer INT
 ```
 
+## Loading Defaults from File
+
+Pydargs can also load defaults for the fields in your dataclass from a JSON (or YAML)-formatted file.
+In order to enable this, pass the flag `load_from_file=True` to `parse`.
+This will add a `--file` argument to the parser. Passing a path to a json-formatted file will trigger pydargs to load
+the values from the file as defaults. Any values provided in the file will take precedence over the defaults defined
+in the dataclass, but can be overwritten by their respective command line arguments.
+For example, with the following contents in `defaults.json`:
+
+```json
+{
+  "a": 1,
+  "b": "abc"
+}
+```
+
+then running this code
+
+```python
+from dataclasses import dataclass
+from pydargs import parse
+
+
+@dataclass
+class Config:
+    a: int
+    b: str = "def"
+
+if __name__ == "__main__":
+    config = parse(Config, load_from_file=True)
+```
+
+with the following arguments
+
+`entrypoint --file defaults.json --b xyz`
+
+would result in `Config(a=1, b="xyz")`.
+
+Note that:
+- The defaults provided in the file will not be type-casted by pydargs, and hence only JSON-native types are supported.
+  If required, you can add type-casting by using a pydantic dataclass.
+-
+
 ## Nested Dataclasses
 
 Dataclasses may be nested; the type of a dataclass field may be another dataclass type:

@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from dataclasses import Field, MISSING, fields
 from datetime import date, datetime
 from enum import Enum
+from pathlib import Path
 from typing import (
     Any,
     ClassVar,
@@ -35,22 +36,56 @@ class DataClassProtocol(Protocol):
 Dataclass = TypeVar("Dataclass", bound=DataClassProtocol)
 
 
-def parse(tp: Type[Dataclass], args: Optional[list[str]] = None, **kwargs: Any) -> Dataclass:
+def parse(
+    tp: Type[Dataclass], args: Optional[list[str]] = None, load_from_file: bool = False, **kwargs: Any
+) -> Dataclass:
     """Instantiate an object of the provided dataclass type from command line arguments.
 
     Args:
         tp: Type of the object to instantiate. This is expected to be a dataclass.
         args: Optional list of arguments. Defaults to sys.argv.
+        load_from_file: If True, add a --file argument to load defaults from a JSON or YAML file.  # TODO: better arg name
         **kwargs: Keyword arguments passed to the ArgumentParser object.
 
     Returns:
         An instance of tp.
     """
-    namespace = _create_parser(tp, **kwargs).parse_args(args)
+    namespace = _create_parser(tp, load_from_file=load_from_file, **kwargs).parse_args(args)
+    if load_from_file:
+        _add_defaults_from_file(namespace)
     result = _create_object(tp, namespace)
     if len(namespace.__dict__):
-        raise RuntimeError("Internal pydargs error: Some namespace arguments have not been consumed.")
+        if load_from_file:
+            warn("The following keys from the ")
+        else:
+            raise RuntimeError("Internal pydargs error: Some namespace arguments have not been consumed.")
     return result
+
+
+def _add_defaults_from_file(namespace: Namespace) -> None:
+    if "file" in namespace:
+        file_path: Path = getattr(namespace, "file")
+        if file_path.suffix in (".yaml", ".yml"):
+            try:
+                from yaml import safe_load as load
+            except ImportError:
+                raise RuntimeError(
+                    "PyYAML is required to parse YAML files. "
+                    "To install PyYAML with pydargs, run `pip install pydargs[yaml]`."
+                )
+        else:
+            from json import loads as load
+        defaults = load(file_path.read_text())
+        delattr(namespace, "file")
+        _add_defaults_from_dict(namespace, defaults)
+
+
+def _add_defaults_from_dict(namespace: Namespace, defaults: dict[str, Any], prefix: str = ""):
+    for key, value in defaults.items():
+        if isinstance(value, dict):
+            _add_defaults_from_dict(namespace, value, prefix=f"{prefix}{key}_")
+        elif not hasattr(namespace, f"{prefix}{key}"):
+            setattr(namespace, f"{prefix}{key}", value)
 
 
 def _create_object(tp: Type[Dataclass], namespace: Namespace, prefix: str = "") -> Dataclass:
@@ -89,8 +124,15 @@ def _create_object(tp: Type[Dataclass], namespace: Namespace, prefix: str = "") 
     return tp(**args)
 
 
-def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
+def _create_parser(tp: Type[Dataclass], load_from_file: bool, **kwargs: Any) -> ArgumentParser:
     parser = ArgumentParser(**kwargs, argument_default=SUPPRESS)
+    if load_from_file:
+        parser.add_argument(
+            "--file",
+            required=False,
+            type=Path,
+            help="Override configuration defaults from a JSON file.",
+        )
     _add_arguments(parser, tp)
     return parser
 

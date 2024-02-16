@@ -1,8 +1,10 @@
 from dataclasses import dataclass, field
+from json import dumps
+from pathlib import Path
 from typing import Union
 from sys import version_info
 
-from pytest import mark, raises
+from pytest import mark, raises, warns
 
 from pydargs import parse
 
@@ -94,6 +96,14 @@ class TestParseAction:
         assert config.action.c == 12
         assert config.action.e == "positional"
         assert config.flag is False
+
+    def test_parse_file(self, tmp_path: Path, recwarn) -> None:
+        (tmp_path / "config.json").write_text(dumps({"var": -1, "action_a": 0, "action_c": 0}))
+        with warns(UserWarning):  # Warn for the unused `action_a`
+            config = parse(self.Config, ["--file", str(tmp_path / "config.json"), "Action2"], load_from_file=True)
+        assert isinstance(config.action, Action2)
+        assert config.action.c == 0
+        assert config.var == -1
 
 
 class TestDoubleAction:
