@@ -72,6 +72,8 @@ The dataclass can have fields of the base types: `int`, `float`, `str`, `bool`, 
   that `str | int` will _always_ result in a value of type `str`.
 - Any other type that can be instantiated from a string, such as `Path`.
 - Dataclasses that, in turn, contain fields of supported types. See [Nested Dataclasses](#nested-dataclasses).
+- A union of multiple dataclasses, that in turn contain fields of supported types,
+  which will be parsed in [Subparsers](#subparsers).
 
 ## Metadata
 
@@ -215,7 +217,7 @@ class Base:
 ```
 
 Argument names of fields of the nested dataclass are prefixed with the field name of the nested dataclass in the base
-dataclass. Calling `pydargs.parse(Base, ["-h"])` will result in somthing like:
+dataclass. Calling `pydargs.parse(Base, ["-h"])` will result in something like:
 
 ```text
 usage: your_program.py [-h] --config-field-a CONFIG_FIELD_A
@@ -240,3 +242,54 @@ Please be aware of the following:
   If you must add a default, for example for instantiating your dataclass elsewhere, do `config: Config = field(default_factory=Config)`, assuming that all fields in `Config` have a default.
 - Nested dataclasses can not be positional (although _fields of_ the nested dataclass can be).
 - Argument names must not collide. In the example above, the `Base` class should not contain a field named `config_field_a`.
+
+## Subparsers
+
+Dataclasses can contain a field with a union-of-dataclasses type, e.g.:
+
+```python
+from dataclasses import dataclass, field
+from typing import Union
+
+
+@dataclass
+class Command1:
+  field_a: int
+  field_b: str = "abc"
+
+
+@dataclass
+class Command2:
+  field_c: str = field(metadata=dict(positional=True))
+
+
+@dataclass
+class Base:
+  command: Union[Command1, Command2]
+  verbose: bool = False
+```
+
+This will result in [sub commands](https://docs.python.org/3/library/argparse.html#sub-commands)
+which allow calling your entrypoint as `entrypoint --verbose Command1 --field-a 12`.
+
+Calling `pydargs.parse(Base, ["-h"])` will result in something like:
+
+```text
+usage: your_program.py [-h] [--verbose VERBOSE] {Command1,command1,Command2,command2} ...
+
+options:
+  -h, --help            show this help message and exit
+  --verbose VERBOSE     (default: False)
+
+action:
+  {Command1,command1,Command2,command2}
+```
+
+Note that:
+- Also lower-case command names are accepted.
+- Any dataclass can not contain more than one subcommand-field.
+- Sub-commands can be nested and mixed with nested dataclasses.
+- Any positional fields defined after a subcommand-field can not be parsed.
+- Subparsers handle all arguments that come after the command; so all global arguments must come before the command.
+  In the above example this means that  `entrypoint --verbose Command2 string`
+  is valid but `entrypoint Command2 string --verbose` is not.

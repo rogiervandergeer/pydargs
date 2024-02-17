@@ -1,7 +1,7 @@
 import sys
 from argparse import ArgumentParser, BooleanOptionalAction, Namespace, SUPPRESS
 from collections.abc import Sequence
-from dataclasses import MISSING, fields
+from dataclasses import Field, MISSING, fields
 from datetime import date, datetime
 from enum import Enum
 from typing import (
@@ -47,7 +47,10 @@ def parse(tp: Type[Dataclass], args: Optional[list[str]] = None, **kwargs: Any) 
         An instance of tp.
     """
     namespace = _create_parser(tp, **kwargs).parse_args(args)
-    return _create_object(tp, namespace)
+    result = _create_object(tp, namespace)
+    if len(namespace.__dict__):
+        raise RuntimeError("Internal pydargs error: Some namespace arguments have not been consumed.")
+    return result
 
 
 def _create_object(tp: Type[Dataclass], namespace: Namespace, prefix: str = "") -> Dataclass:
@@ -59,7 +62,23 @@ def _create_object(tp: Type[Dataclass], namespace: Namespace, prefix: str = "") 
                 prefix + field.name,
                 _create_object(field.type, namespace, prefix=f"{prefix}{field.name}_"),
             )
-    args = {key[len(prefix) :]: value for key, value in namespace.__dict__.items() if key.startswith(prefix)}
+        elif _is_command(field):
+            chosen_action = getattr(namespace, prefix + field.name)
+            # Remove chosen command name and optionally replace with instantiated object.
+            delattr(namespace, prefix + field.name)
+            if chosen_action is not None:
+                for arg in get_args(field.type):
+                    if arg.__name__ == chosen_action:
+                        setattr(namespace, prefix + field.name, _create_object(arg, namespace, prefix=f"{prefix}+"))
+                        break
+                if not hasattr(namespace, prefix + field.name):
+                    raise ValueError("Invalid command.", chosen_action)
+    # Select the relevant keys for the object and remove prefixes.
+    args = {
+        key[len(prefix) :]: value
+        for key, value in namespace.__dict__.items()
+        if key.startswith(prefix) and key[len(prefix) :] in {field.name for field in fields(tp)}
+    }
     # Remove the keys used so far from the namespace, to prevent clutter when creating a parent object.
     for key in args.keys():
         delattr(namespace, prefix + key)
@@ -73,9 +92,16 @@ def _create_parser(tp: Type[Dataclass], **kwargs: Any) -> ArgumentParser:
 
 
 def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = "") -> ArgumentParser:
-    parser_or_group = parser.add_argument_group(prefix.strip("_")) if prefix else parser
+    parser_or_group = (  # Only add a group if there is a prefix that isn't "" or "+".
+        parser.add_argument_group(prefix.strip("_")) if prefix.replace("+", "") else parser
+    )
+    has_subparser = False
     for field in fields(tp):
         if field.metadata.get("ignore_arg", False):
+            continue
+        if _is_command(field):
+            _add_subparsers(parser, field, prefix)
+            has_subparser = True
             continue
 
         argument_kwargs: dict[str, Any] = dict()
@@ -85,14 +111,14 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
             if len(argument_kwargs["help"]):
                 argument_kwargs["help"] += " "
             argument_kwargs["help"] += f"(default: {field.default})"
-        if "metavar" in field.metadata:
-            argument_kwargs["metavar"] = field.metadata["metavar"]
         positional = field.metadata.get("positional", False)
         short_option = field.metadata.get("short_option")
         if positional:
+            if has_subparser:
+                warn("Positional arguments defined after a subparser cannot be parsed.")
             if short_option:
                 raise ValueError("Short options are not supported for positional arguments.")
-            arguments = [prefix + field.name]
+            arguments = [prefix + field.name.replace("+", "")]
             if field_has_default:
                 # Positional arguments that are not required must have a valid default
                 argument_kwargs["default"] = (
@@ -101,12 +127,14 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
                     else field.default
                 )
                 argument_kwargs["nargs"] = "?"
+            argument_kwargs["metavar"] = field.metadata.get("metavar", (prefix + field.name).replace("+", ""))
 
         else:
-            arguments = [f"--{(prefix+field.name).replace('_', '-')}"]
+            arguments = [f"--{(prefix+field.name).replace('_', '-').replace('+', '')}"]
             if short_option:
                 arguments = [short_option] + arguments
             argument_kwargs["dest"] = prefix + field.name
+            argument_kwargs["metavar"] = field.metadata.get("metavar", (prefix + field.name).replace("+", "").upper())
             argument_kwargs["required"] = not field_has_default
 
         if parser_fct := field.metadata.get("parser", None):
@@ -126,6 +154,8 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
             elif origin is Literal:
                 if len({type(arg) for arg in get_args(field.type)}) > 1:
                     raise NotImplementedError("Parsing Literals with mixed types is not supported.")
+                if "metavar" not in field.metadata:
+                    del argument_kwargs["metavar"]  # Remove default metavar in favour of argparse default
                 parser_or_group.add_argument(
                     *arguments,
                     choices=get_args(field.type),
@@ -174,6 +204,8 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
                     **argument_kwargs,
                 )
         elif issubclass(field.type, Enum):
+            if "metavar" not in field.metadata:
+                del argument_kwargs["metavar"]  # Remove default metavar in favour of argparse default
             parser_or_group.add_argument(
                 *arguments,
                 choices=list(field.type),
@@ -194,6 +226,30 @@ def _add_arguments(parser: ArgumentParser, tp: Type[Dataclass], prefix: str = ""
                 **argument_kwargs,
             )
     return parser
+
+
+def _add_subparsers(parser, field: Field, prefix: str = "") -> None:
+    subparsers = parser.add_subparsers(
+        dest=prefix + field.name,
+        title=field.name,
+        required=field.default is MISSING and field.default_factory is MISSING,
+        help=field.metadata.get("help"),
+    )
+
+    for command in get_args(field.type):
+        subparser = subparsers.add_parser(
+            str(command.__name__),
+            argument_default=SUPPRESS,
+            aliases=[str(command.__name__).lower()],
+        )
+        _add_arguments(subparser, command, prefix=f"{prefix}+")
+
+
+def _is_command(field: Field) -> bool:
+    # A command is a Union of dataclass fields.
+    return get_origin(field.type) in UNION_TYPES and all(
+        hasattr(arg, "__dataclass_fields__") for arg in get_args(field.type)
+    )
 
 
 @rename(name="bool")
