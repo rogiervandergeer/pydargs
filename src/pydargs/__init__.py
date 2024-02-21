@@ -99,7 +99,7 @@ def _create_object(tp: Type[Dataclass], namespace: Namespace, prefix: str = "") 
             )
         elif _is_command(field):
             chosen_action = getattr(namespace, prefix + field.name)
-            # Remove chosen action name and optionally replace with instantiated object.
+            # Remove chosen command name and optionally replace with instantiated object.
             delattr(namespace, prefix + field.name)
             if chosen_action is not None:
                 for arg in get_args(field.type):
@@ -111,7 +111,7 @@ def _create_object(tp: Type[Dataclass], namespace: Namespace, prefix: str = "") 
                         )
                         break
                 if not hasattr(namespace, prefix + field.name):
-                    raise ValueError("Invalid action.", chosen_action)
+                    raise ValueError("Invalid command.", chosen_action)
     # Select the relevant keys for the object and remove prefixes.
     args = {
         key[len(prefix) :]: value
@@ -291,7 +291,7 @@ def _add_subparsers(parser: ArgumentParser, field: Field, prefix: str, dest_pref
 
 
 def _is_command(field: Field) -> bool:
-    # An action is a Union of dataclass fields.
+    # A command is a Union of dataclass fields.
     return get_origin(field.type) in UNION_TYPES and all(
         hasattr(arg, "__dataclass_fields__") for arg in get_args(field.type)
     )
