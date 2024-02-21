@@ -58,12 +58,11 @@ class TestParseCommand:
         "help_string",
         ["prog Command1 [-h] --a A [--b B]", "options:  -h"],
     )
-    def test_action_help(self, capsys, help_string: str):
+    def test_command_help(self, capsys, help_string: str):
         with raises(SystemExit):
             parse(self.Config, ["Command1", "--help"], prog="prog")  # type: ignore
         captured = capsys.readouterr()
         assert help_string in captured.out.replace("\n", "")
-        assert "prog Command1 [-h] --a A [--b B]" in captured.out.replace("\n", "")
 
     def test_is_required(self, capsys):
         with raises(SystemExit):
@@ -84,7 +83,7 @@ class TestParseCommand:
         captured = capsys.readouterr()
         assert "unrecognized arguments: --flag" in captured.err
 
-    def test_action_args(self):
+    def test_command_args(self):
         config = parse(self.Config, ["Command1", "--a", "12"])
         assert config.command.a == 12
         assert config.flag is False
@@ -96,11 +95,11 @@ class TestParseCommand:
         assert config.flag is False
 
 
-class TestDoubleAction:
+class TestDoubleCommand:
     @dataclass
     class Config:
-        action: Union[Command1, Command2]
-        second_action: Union[Command1, Command2, Command3] = field(default_factory=lambda: Command1(a=1))
+        command: Union[Command1, Command2]
+        second_command: Union[Command1, Command2, Command3] = field(default_factory=lambda: Command1(a=1))
         var: int = 12
         flag: bool = field(default=False, metadata=dict(as_flags=True))
 
@@ -111,7 +110,7 @@ class TestDoubleAction:
         assert "error: cannot have multiple subparser arguments" in captured.err
 
 
-class TestActionDefault:
+class TestCommandDefault:
     @dataclass
     class Config:
         mode: Union[Command1, Command2, Command3] = field(default_factory=lambda: Command1(0))
@@ -137,7 +136,7 @@ class TestActionDefault:
         assert "unrecognized arguments: --flag" in captured.err
 
 
-class TestNestedAction:
+class TestNestedCommand:
     @dataclass
     class Config:
         mode: Union[Command1, Command2, Command3, Command4] = field(default_factory=lambda: Command1(0))
@@ -187,7 +186,7 @@ class TestPositionalAndSubparser:
     @dataclass
     class Config:
         positional_1: str = field(metadata=dict(positional=True))
-        action: Union[Command1, Command2]
+        command: Union[Command1, Command2]
         flag: bool = field(default=False, metadata=dict(as_flags=True))
         positional_2: str = field(default="five", metadata=dict(positional=True))
 
@@ -206,7 +205,7 @@ class TestPositionalAndSubparser:
         assert config.positional_1 == "positional"
 
 
-class TestParseActionInNested:
+class TestParseCommandInNested:
     @dataclass
     class Config:
         cmd: Command4
@@ -227,7 +226,7 @@ class TestParseActionInNested:
         captured = capsys.readouterr()
         assert help_string in captured.out.replace("\n", "")
 
-    def test_action_help(self, capsys):
+    def test_command_help(self, capsys):
         with raises(SystemExit):
             parse(self.Config, ["Command1", "--help"], prog="prog")  # type: ignore
         captured = capsys.readouterr()
@@ -251,7 +250,7 @@ class TestParseActionInNested:
         captured = capsys.readouterr()
         assert "unrecognized arguments: --flag" in captured.err
 
-    def test_action_args(self):
+    def test_command_args(self):
         config = parse(self.Config, ["Command1", "--cmd-a", "12"])
         assert config.cmd.sub_command.a == 12
         assert config.flag is False
