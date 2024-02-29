@@ -231,7 +231,7 @@ class TestParseActionInNested:
         with raises(SystemExit):
             parse(self.Config, ["Command1", "--help"], prog="prog")  # type: ignore
         captured = capsys.readouterr()
-        assert "prog Command1 [-h] --cmd-a CMD_A [--cmd-b CMD_B]" in captured.out.replace("\n", "")
+        assert "prog Command1 [-h] --a A [--b B]" in captured.out.replace("\n", "")
 
     def test_is_required(self, capsys):
         with raises(SystemExit):
@@ -252,12 +252,12 @@ class TestParseActionInNested:
         assert "unrecognized arguments: --flag" in captured.err
 
     def test_action_args(self):
-        config = parse(self.Config, ["Command1", "--cmd-a", "12"])
+        config = parse(self.Config, ["Command1", "--a", "12"])
         assert config.cmd.sub_command.a == 12
         assert config.flag is False
 
     def test_parse_positional(self):
-        config = parse(self.Config, ["Command2", "positional", "--cmd-c", "12"])
+        config = parse(self.Config, ["Command2", "positional", "--c", "12"])
         assert config.cmd.sub_command.c == 12
         assert config.cmd.sub_command.e == "positional"
         assert config.flag is False
