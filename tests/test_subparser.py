@@ -209,13 +209,14 @@ class TestParseCommandInNested:
     @dataclass
     class Config:
         cmd: Command4
+        a: float = 1.0
         var: int = 12
         flag: bool = field(default=False, metadata=dict(as_flags=True))
 
     @mark.parametrize(
         "help_string",
         [
-            "usage: prog [-h] [--cmd-string4 CMD_STRING4] [--var VAR] [--flag | --no-flag]",
+            "usage: prog [-h] [--cmd-string4 CMD_STRING4] [--a A] [--var VAR]",
             "{Command1,command1,Command2,command2} ...",
             "sub_command:  {Command1,command1,Command2,command2}",
         ],
@@ -230,7 +231,7 @@ class TestParseCommandInNested:
         with raises(SystemExit):
             parse(self.Config, ["Command1", "--help"], prog="prog")  # type: ignore
         captured = capsys.readouterr()
-        assert "prog Command1 [-h] --cmd-a CMD_A [--cmd-b CMD_B]" in captured.out.replace("\n", "")
+        assert "prog Command1 [-h] --a A [--b B]" in captured.out.replace("\n", "")
 
     def test_is_required(self, capsys):
         with raises(SystemExit):
@@ -251,12 +252,13 @@ class TestParseCommandInNested:
         assert "unrecognized arguments: --flag" in captured.err
 
     def test_command_args(self):
-        config = parse(self.Config, ["Command1", "--cmd-a", "12"])
+        config = parse(self.Config, ["--a", "11", "Command1", "--a", "12"])
+        assert config.a == 11.0
         assert config.cmd.sub_command.a == 12
         assert config.flag is False
 
     def test_parse_positional(self):
-        config = parse(self.Config, ["Command2", "positional", "--cmd-c", "12"])
+        config = parse(self.Config, ["Command2", "positional", "--c", "12"])
         assert config.cmd.sub_command.c == 12
         assert config.cmd.sub_command.e == "positional"
         assert config.flag is False

@@ -245,7 +245,7 @@ def _add_subparsers(parser: ArgumentParser, field: Field, prefix: str, dest_pref
             aliases=[str(command.__name__).lower()],
         )
         # Do not add the field name to the arg prefix -- argument names should not be prefixed with the command name.
-        _add_arguments(subparser, command, arg_prefix=prefix, dest_prefix=f"{dest_prefix}{field.name}_")
+        _add_arguments(subparser, command, arg_prefix="", dest_prefix=f"{dest_prefix}{field.name}_")
 
 
 def _is_command(field: Field) -> bool:
