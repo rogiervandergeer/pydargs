@@ -252,8 +252,8 @@ class TestParseCommandInNested:
         assert "unrecognized arguments: --flag" in captured.err
 
     def test_command_args(self):
-        config = parse(self.Config, ["--a", "12", "Command1", "--a", "12"])
-        assert config.a == 12.0
+        config = parse(self.Config, ["--a", "11", "Command1", "--a", "12"])
+        assert config.a == 11.0
         assert config.cmd.sub_command.a == 12
         assert config.flag is False
 
