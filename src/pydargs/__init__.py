@@ -63,12 +63,12 @@ def _create_object(tp: Type[Dataclass], namespace: Namespace, prefix: str = "") 
                 _create_object(field.type, namespace, prefix=f"{prefix}{field.name}_"),
             )
         elif _is_command(field):
-            chosen_action = getattr(namespace, prefix + field.name)
+            chosen_command = getattr(namespace, prefix + field.name)
             # Remove chosen command name and optionally replace with instantiated object.
             delattr(namespace, prefix + field.name)
-            if chosen_action is not None:
+            if chosen_command is not None:
                 for arg in get_args(field.type):
-                    if arg.__name__ == chosen_action:
+                    if arg.__name__ == chosen_command:
                         setattr(
                             namespace,
                             prefix + field.name,
@@ -76,7 +76,7 @@ def _create_object(tp: Type[Dataclass], namespace: Namespace, prefix: str = "") 
                         )
                         break
                 if not hasattr(namespace, prefix + field.name):
-                    raise ValueError("Invalid command.", chosen_action)
+                    raise ValueError("Invalid command.", chosen_command)
     # Select the relevant keys for the object and remove prefixes.
     args = {
         key[len(prefix) :]: value
