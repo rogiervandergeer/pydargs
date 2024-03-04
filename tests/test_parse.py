@@ -107,8 +107,15 @@ class TestIgnoreArg:
         with raises(TypeError):
             parse(TConfig, [])
 
-    def test_property_with_init_false(self) -> None:
-        ...
+    def test_property_with_init_false_no_default(self) -> None:
+        @dataclass
+        class Config:
+            a: int = 5
+            d: str = field(init=False)
+            z: str = "dummy"
+
+        config = parse(Config, [])
+        assert getattr(config, "d", None) is None
 
 
 class TestPositional:
