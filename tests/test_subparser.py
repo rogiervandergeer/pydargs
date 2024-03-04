@@ -209,13 +209,14 @@ class TestParseCommandInNested:
     @dataclass
     class Config:
         cmd: Command4
+        a: float = 1.0
         var: int = 12
         flag: bool = field(default=False, metadata=dict(as_flags=True))
 
     @mark.parametrize(
         "help_string",
         [
-            "usage: prog [-h] [--cmd-string4 CMD_STRING4] [--var VAR] [--flag | --no-flag]",
+            "usage: prog [-h] [--cmd-string4 CMD_STRING4] [--a A] [--var VAR]",
             "{Command1,command1,Command2,command2} ...",
             "sub_command:  {Command1,command1,Command2,command2}",
         ],
@@ -251,7 +252,8 @@ class TestParseCommandInNested:
         assert "unrecognized arguments: --flag" in captured.err
 
     def test_command_args(self):
-        config = parse(self.Config, ["Command1", "--a", "12"])
+        config = parse(self.Config, ["--a", "12", "Command1", "--a", "12"])
+        assert config.a == 12.0
         assert config.cmd.sub_command.a == 12
         assert config.flag is False
 
