@@ -79,7 +79,7 @@ The dataclass can have fields of the base types: `int`, `float`, `str`, `bool`, 
 
 Pydargs can also consume values from a JSON- or YAML-formatted file. To enable
 this, pass `load_from_config=True` to the `parse` function, which will add a `--config-file`
-command line argument. The values from this file will override the defaults
+command line argument. If provided, the values from this file will override the defaults
 of the dataclass fields. Any command line arguments passed will override the
 defaults provided in the file.
 
@@ -117,10 +117,10 @@ would result in `Config(a=1, b="xyz")`.
 
 Note that:
 - Only _defaults_ can be overridden. Any dataclass fields without a default must always be provided on the command line.
-- Any extra keys present inside the file but not matching any field in the dataclass will be ignored,
+- Any extra keys present inside the file but not matching a field in the dataclass will be ignored,
   and if any are present a warning will be raised.
-- In order to load defaults from a YAML-formatted file, PyYAML has to be installed.
-  To install it with pydargs, run `pip install pydargs[pyyaml]`.
+- In order to load defaults from a YAML-formatted file, [PyYAML](https://pyyaml.org/wiki/PyYAMLDocumentation) has
+  to be installed. To install it with pydargs, run `pip install pydargs[pyyaml]`.
 - The parsed dataclass may not have a field named `config_file`.
 - The defaults provided in the file will not be type-casted by pydargs, and hence only JSON-native types are supported.
 
@@ -341,9 +341,6 @@ Note that:
 - Any dataclass can not contain more than one subcommand-field.
 - Sub-commands can be nested and mixed with nested dataclasses.
 - Any positional fields defined after a subcommand-field can not be parsed.
-- Subparsers handle all arguments that come after the command; so all global arguments must come before the command.
-  In the above example this means that  `entrypoint --verbose Command2 string`
-  is valid but `entrypoint Command2 string --verbose` is not.
 - Subparsers handle all arguments that come after the command; so all global arguments must come before the command.
   In the above example this means that  `entrypoint --verbose Command2 string`
   is valid but `entrypoint Command2 string --verbose` is not.
