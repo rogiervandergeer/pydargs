@@ -56,13 +56,17 @@ def parse(
     result = _create_object(tp, namespace)
     if len(namespace.__dict__):
         if load_from_file:
-            warn("The following keys from the ")
+            warn(
+                "The following keys from the provided configuration file were "
+                f"not consumed: {', '.join(namespace.__dict__.keys())}"
+            )
         else:
             raise RuntimeError("Internal pydargs error: Some namespace arguments have not been consumed.")
     return result
 
 
 def _add_defaults_from_file(namespace: Namespace) -> None:
+    """Read defaults from the --file argument."""
     if "file" in namespace:
         file_path: Path = getattr(namespace, "file")
         if file_path.suffix in (".yaml", ".yml"):
@@ -74,18 +78,46 @@ def _add_defaults_from_file(namespace: Namespace) -> None:
                     "To install PyYAML with pydargs, run `pip install pydargs[yaml]`."
                 )
         else:
-            from json import loads as load
+            from json import loads as load  # type: ignore
         defaults = load(file_path.read_text())
         delattr(namespace, "file")
         _add_defaults_from_dict(namespace, defaults)
 
 
-def _add_defaults_from_dict(namespace: Namespace, defaults: dict[str, Any], prefix: str = ""):
-    for key, value in defaults.items():
+def _add_defaults_from_dict(namespace: Namespace, defaults: dict[str, Any]) -> None:
+    """Add keys from a dictionary to a namespace if they do not yet exist."""
+    for key, value in _flatten_dict(defaults).items():
+        if not hasattr(namespace, key):
+            setattr(namespace, key, value)
+
+
+def _flatten_dict(input_dict: dict[str, Any], prefix: str = "") -> dict[str, Any]:
+    """Flatten a nested dictionary.
+
+    Flatten a dictionary by joining nested keys with "_"s. For example:
+    {"a": 1, "b": {"c": 2, "d": [1, 2, 3], "e": {"f": 1, "g": {"h": 4}}}}
+    becomes:
+    {"a": 1, "b_c": 2, "b_d": [1, 2, 3], "b_e_f": 1, "b_e_g_h": 4}
+
+    Args:
+        input_dict: A dictionary to be flattened.
+        prefix: Prefix to prepend before all keys.
+
+    Returns:
+        Flattened dictionary.
+    """
+    result = {}
+    for key, value in input_dict.items():
         if isinstance(value, dict):
-            _add_defaults_from_dict(namespace, value, prefix=f"{prefix}{key}_")
-        elif not hasattr(namespace, f"{prefix}{key}"):
-            setattr(namespace, f"{prefix}{key}", value)
+            for n_key, n_value in _flatten_dict(value, prefix=f"{key}_").items():
+                if prefix + n_key in result:
+                    raise KeyError(f"Collision between keys in defaults file on key {prefix + n_key}.")
+                result[prefix + n_key] = n_value
+        else:
+            if prefix + key in result:
+                raise KeyError(f"Collision between keys in defaults file on key {prefix + key}.")
+            result[prefix + key] = value
+    return result
 
 
 def _create_object(tp: Type[Dataclass], namespace: Namespace, prefix: str = "") -> Dataclass:
@@ -148,7 +180,7 @@ def _add_arguments(
         if field.metadata.get("ignore_arg", False):
             continue
         if _is_command(field):
-            _add_subparsers(parser, field, arg_prefix, dest_prefix)
+            _add_subparsers(parser, field, dest_prefix)
             has_subparser = True
             continue
 
@@ -272,7 +304,7 @@ def _add_arguments(
     return parser
 
 
-def _add_subparsers(parser: ArgumentParser, field: Field, prefix: str, dest_prefix: str) -> None:
+def _add_subparsers(parser: ArgumentParser, field: Field, dest_prefix: str) -> None:
     subparsers = parser.add_subparsers(
         dest=dest_prefix + field.name,
         title=field.name,
