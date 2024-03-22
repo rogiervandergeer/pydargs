@@ -2,6 +2,8 @@ from argparse import ArgumentError
 from dataclasses import dataclass, field
 from json import dumps
 from pathlib import Path
+from typing import Optional
+
 from yaml import dump
 
 from pytest import raises, warns
@@ -110,7 +112,7 @@ class TestFileCollision:
     @dataclass
     class Config:
         a: int = 5
-        file: Path | None = None
+        file: Optional[Path] = None
 
     def test_parse_no_file(self) -> None:
         config = parse(self.Config, [], load_from_file=False)
