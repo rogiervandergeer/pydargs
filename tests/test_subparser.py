@@ -100,7 +100,9 @@ class TestParseCommand:
         (tmp_path / "config.yaml").write_text(dump({"var": 100, "command": {"b": "b", "c": 0}}))
         with warns(UserWarning) as warnings:
             config = parse(
-                self.Config, ["--file", str((tmp_path / "config.yaml")), "Command1", "--a", "123"], load_from_file=True
+                self.Config,
+                ["--config-file", str((tmp_path / "config.yaml")), "Command1", "--a", "123"],
+                load_from_config=True,
             )
         assert config.var == 100
         assert isinstance(config.command, Command1)

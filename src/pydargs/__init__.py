@@ -19,8 +19,7 @@ from typing import (
 )
 from warnings import warn
 
-from pydargs.utils import named_partial, rename
-
+from pydargs.utils import named_partial, rename, yaml_available
 
 UNION_TYPES: set[Any] = {Union}
 if sys.version_info >= (3, 10):
@@ -37,25 +36,25 @@ Dataclass = TypeVar("Dataclass", bound=DataClassProtocol)
 
 
 def parse(
-    tp: Type[Dataclass], args: Optional[list[str]] = None, load_from_file: bool = False, **kwargs: Any
+    tp: Type[Dataclass], args: Optional[list[str]] = None, load_from_config: bool = False, **kwargs: Any
 ) -> Dataclass:
     """Instantiate an object of the provided dataclass type from command line arguments.
 
     Args:
         tp: Type of the object to instantiate. This is expected to be a dataclass.
         args: Optional list of arguments. Defaults to sys.argv.
-        load_from_file: If True, add a --file argument to load defaults from a JSON or YAML file.  # TODO: better arg name
+        load_from_config: If True, add a --config-file argument to load defaults from a JSON or YAML file.
         **kwargs: Keyword arguments passed to the ArgumentParser object.
 
     Returns:
         An instance of tp.
     """
-    namespace = _create_parser(tp, load_from_file=load_from_file, **kwargs).parse_args(args)
-    if load_from_file:
+    namespace = _create_parser(tp, load_from_config=load_from_config, **kwargs).parse_args(args)
+    if load_from_config:
         _add_defaults_from_file(namespace)
     result = _create_object(tp, namespace)
     if len(namespace.__dict__):
-        if load_from_file:
+        if load_from_config:
             warn(
                 "The following keys from the provided configuration file were "
                 f"not consumed: {', '.join(namespace.__dict__.keys())}"
@@ -65,22 +64,24 @@ def parse(
     return result
 
 
-def _add_defaults_from_file(namespace: Namespace) -> None:
-    """Read defaults from the --file argument."""
-    if "file" in namespace:
-        file_path: Path = getattr(namespace, "file")
+def _add_defaults_from_file(namespace: Namespace, key: str = "config_file") -> None:
+    """Read defaults from the config file argument."""
+    if key in namespace:
+        file_path: Path = getattr(namespace, key)
         if file_path.suffix in (".yaml", ".yml"):
-            try:
-                from yaml import safe_load as load
-            except ImportError:
+            if not yaml_available():
                 raise RuntimeError(
                     "PyYAML is required to parse YAML files. "
                     "To install PyYAML with pydargs, run `pip install pydargs[yaml]`."
                 )
+            from yaml import safe_load
+
+            defaults = safe_load(file_path.read_text())
         else:
-            from json import loads as load  # type: ignore
-        defaults = load(file_path.read_text())
-        delattr(namespace, "file")
+            from json import loads as load
+
+            defaults = load(file_path.read_text())
+        delattr(namespace, key)
         _add_defaults_from_dict(namespace, defaults)
 
 
@@ -111,11 +112,11 @@ def _flatten_dict(input_dict: dict[str, Any], prefix: str = "") -> dict[str, Any
         if isinstance(value, dict):
             for n_key, n_value in _flatten_dict(value, prefix=f"{key}_").items():
                 if prefix + n_key in result:
-                    raise KeyError(f"Collision between keys in defaults file on key {prefix + n_key}.")
+                    raise KeyError(f"Collision between keys in config file on key {prefix + n_key}.")
                 result[prefix + n_key] = n_value
         else:
             if prefix + key in result:
-                raise KeyError(f"Collision between keys in defaults file on key {prefix + key}.")
+                raise KeyError(f"Collision between keys in config file on key {prefix + key}.")
             result[prefix + key] = value
     return result
 
@@ -156,14 +157,15 @@ def _create_object(tp: Type[Dataclass], namespace: Namespace, prefix: str = "") 
     return tp(**args)
 
 
-def _create_parser(tp: Type[Dataclass], load_from_file: bool, **kwargs: Any) -> ArgumentParser:
+def _create_parser(tp: Type[Dataclass], load_from_config: bool, **kwargs: Any) -> ArgumentParser:
     parser = ArgumentParser(**kwargs, argument_default=SUPPRESS)
-    if load_from_file:
+    if load_from_config:
+        supported_types = "JSON- or YAML-" if yaml_available() else "JSON-"
         parser.add_argument(
-            "--file",
+            "--config-file",
             required=False,
             type=Path,
-            help="Override configuration defaults from a JSON file.",
+            help=f"Override configuration defaults from a {supported_types}-formatted file.",
         )
     _add_arguments(parser, tp)
     return parser

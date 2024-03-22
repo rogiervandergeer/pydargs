@@ -33,7 +33,7 @@ class TestParseFromFile:
         z: str = "dummy"
 
     def test_parse_no_file(self) -> None:
-        config = parse(self.Config, [], load_from_file=True)
+        config = parse(self.Config, [], load_from_config=True)
         assert config.a == 5
         assert config.b == "something"
         assert config.c is False
@@ -41,7 +41,7 @@ class TestParseFromFile:
 
     def test_parse_with_file(self, tmp_path: Path) -> None:
         (tmp_path / "config.json").write_text(dumps({"a": 6}))
-        config = parse(self.Config, ["--file", str((tmp_path / "config.json"))], load_from_file=True)
+        config = parse(self.Config, ["--config-file", str((tmp_path / "config.json"))], load_from_config=True)
         assert config.a == 6
         assert config.b == "something"
         assert config.c is False
@@ -49,7 +49,9 @@ class TestParseFromFile:
 
     def test_parse_with_file_override(self, tmp_path: Path) -> None:
         (tmp_path / "config.json").write_text(dumps({"a": 6}))
-        config = parse(self.Config, ["--file", str((tmp_path / "config.json")), "--a", "7"], load_from_file=True)
+        config = parse(
+            self.Config, ["--config-file", str((tmp_path / "config.json")), "--a", "7"], load_from_config=True
+        )
         assert config.a == 7
         assert config.b == "something"
         assert config.c is False
@@ -57,7 +59,9 @@ class TestParseFromFile:
 
     def test_nested_with_file_and_override(self, tmp_path: Path) -> None:
         (tmp_path / "config.yaml").write_text(dump({"a": 6, "s": {"a": 1, "b": "c", "s": {"q": "z"}}}))
-        config = parse(self.Config, ["--file", str((tmp_path / "config.yaml")), "--s-b", "d"], load_from_file=True)
+        config = parse(
+            self.Config, ["--config-file", str((tmp_path / "config.yaml")), "--s-b", "d"], load_from_config=True
+        )
         assert config.a == 6
         assert config.b == "something"
         assert config.c is False
@@ -68,7 +72,7 @@ class TestParseFromFile:
 
     def test_nested_with_prefixed_keys(self, tmp_path: Path) -> None:
         (tmp_path / "config.yaml").write_text(dump({"a": 6, "s_a": 1, "s": {"b": "c"}}))
-        config = parse(self.Config, ["--file", str((tmp_path / "config.yaml"))], load_from_file=True)
+        config = parse(self.Config, ["--config-file", str((tmp_path / "config.yaml"))], load_from_config=True)
         assert config.a == 6
         assert config.s.a == 1
         assert config.s.b == "c"
@@ -76,17 +80,17 @@ class TestParseFromFile:
     def test_nested_with_duplicate_keys(self, tmp_path: Path) -> None:
         (tmp_path / "config.yaml").write_text(dump({"a": 6, "s_a": 1, "s": {"a": 2, "b": "c"}}))
         with raises(KeyError) as e:
-            parse(self.Config, ["--file", str((tmp_path / "config.yaml"))], load_from_file=True)
-        assert str(e.value) == "'Collision between keys in defaults file on key s_a.'"
+            parse(self.Config, ["--config-file", str((tmp_path / "config.yaml"))], load_from_config=True)
+        assert str(e.value) == "'Collision between keys in config file on key s_a.'"
 
     def test_parse_with_nonexistent_file(self, tmp_path: Path) -> None:
         with raises(FileNotFoundError):
-            parse(self.Config, ["--file", str((tmp_path / "config.json"))], load_from_file=True)
+            parse(self.Config, ["--config-file", str((tmp_path / "config.json"))], load_from_config=True)
 
     def test_parse_with_extra_fields(self, tmp_path: Path) -> None:
         (tmp_path / "config.json").write_text(dumps({"a": 6, "d": "this_is_extra"}))
         with warns(UserWarning) as warnings:
-            parse(self.Config, ["--file", str((tmp_path / "config.json"))], load_from_file=True)
+            parse(self.Config, ["--config-file", str((tmp_path / "config.json"))], load_from_config=True)
         assert (
             str(warnings[0].message) == "The following keys from the provided configuration file were not consumed: d"
         )
@@ -103,7 +107,7 @@ class TestParseFromFileNoDefaults:
     def test_parse_with_file_fields_remain_required(self, tmp_path: Path, capsys) -> None:
         (tmp_path / "config.json").write_text(dumps({"a": 6, "b": "something"}))
         with raises(SystemExit):
-            parse(self.Config, ["--file", str((tmp_path / "config.json"))], load_from_file=True)
+            parse(self.Config, ["--config-file", str((tmp_path / "config.json"))], load_from_config=True)
         captured = capsys.readouterr()
         assert "the following arguments are required: --a, b" in captured.err
 
@@ -112,13 +116,13 @@ class TestFileCollision:
     @dataclass
     class Config:
         a: int = 5
-        file: Optional[Path] = None
+        config_file: Optional[Path] = None
 
     def test_parse_no_file(self) -> None:
-        config = parse(self.Config, [], load_from_file=False)
+        config = parse(self.Config, [], load_from_config=False)
         assert config.a == 5
-        assert config.file is None
+        assert config.config_file is None
 
     def test_parse_with_file(self, tmp_path: Path) -> None:
         with raises(ArgumentError):
-            parse(self.Config, [], load_from_file=True)
+            parse(self.Config, [], load_from_config=True)
