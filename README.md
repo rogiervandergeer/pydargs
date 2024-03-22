@@ -292,7 +292,8 @@ Please be aware of the following:
 - Nested dataclasses can not be positional (although _fields of_ the nested dataclass can be).
 - Argument names must not collide. In the example above, the `Base` class should not contain a field named `config_field_a`.
 - When reading [defaults from a file](#loading-defaults-from-file), the data inside the file may be nested like the dataclasses as well as flat with prefixes.
-  E.g. `{"config": {"field_b": "xyz"}` has the same effect as `{"config_field_b": "xyz"}`. Make sure that there are no collisions between these options.
+  E.g. `{"config": {"field_b": "xyz"}` has the same effect as `{"config_field_b": "xyz"}`. Pydargs will raise an
+  exception in the case of collisions between these alternatives.
 
 ## Subparsers
 

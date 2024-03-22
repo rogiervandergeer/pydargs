@@ -43,7 +43,7 @@ def parse(
     Args:
         tp: Type of the object to instantiate. This is expected to be a dataclass.
         args: Optional list of arguments. Defaults to sys.argv.
-        load_from_config: If True, add a --config-file argument to load defaults from a JSON or YAML file.
+        load_from_config: If True, add a --config-file argument to load defaults from a JSON- or YAML-formatted file.
         **kwargs: Keyword arguments passed to the ArgumentParser object.
 
     Returns:
