@@ -1,18 +1,11 @@
 # pydargs
 
-Pydargs allows configuring a (Pydantic) dataclass through command line arguments.
-
-## Installation
-
-Pydargs can be installed with your favourite package manager. For example:
-
-```
-pip install pydargs
-```
+Easily configure a CLI application using a (Pydantic) dataclass.
 
 ## Usage
 
-A minimal usage example would be:
+Pydargs instantiates a dataclass that is used as (configuration) input of your entrypoint from command line arguments.
+For example, in `example.py`:
 
 ```python
 from dataclasses import dataclass
@@ -24,18 +17,76 @@ class Config:
     number: int
     some_string: str = "abc"
 
+
+def main(config: Config) -> None:
+    """Your main functionality"""
+    print(f"> Hello {config.number} + {config.some_string}")
+
+
 if __name__ == "__main__":
     config = parse(Config)
+    main(config)
 ```
 
-After which this entrypoint can be called with
+Here the `Config` dataclass serves as input (configuration) of the `main` function. Pydargs facilitates
+instantiating the `config` instance, allowing the user to use command line arguments to set or override the
+values of its fields:
+
 
 ```shell
-entrypoint --number 42
+$ python example.py --number 1
+> Hello 1 abc
+$ python example.py --number 2 --some-string def
+> Hello 2 def
+$ python example.py --help
+usage: example.py [-h] --number NUMBER [--some-string SOME_STRING]
+
+options:
+  -h, --help            show this help message and exit
+  --number NUMBER
+  --some-string SOME_STRING
+                        (default: abc)
 ```
-or
-```shell
-entrypoint --number 42 --some-string abcd
+
+This saves you from having to maintain boilerplate code such as
+
+```python
+from argparse import ArgumentParser
+from dataclasses import dataclass
+
+
+@dataclass
+class Config:
+    number: int
+    some_string: str = "abc"
+
+
+def main(config: Config) -> None:
+    """Your main functionality"""
+    print(f"> Hello {config.number} + {config.some_string}")
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument("--number", type=int)
+    parser.add_argument("--some-string", dest="some_string", default="abc")
+    namespace = parser.parse_args()
+    config = Config(number=namespace["number"], some_string=namespace["some_string"])
+    main(config)
+```
+
+Aside from that, pydargs supports:
+- [a wide variety of field types](#supported-field-types),
+- [nested dataclasses](#nested-dataclasses),
+- [subparsers / commands](#subparsers),
+- [pydantic dataclasses](https://docs.pydantic.dev/latest/concepts/dataclasses/) to help you with validation.
+
+## Installation
+
+Pydargs can be installed with your favourite package manager. For example:
+
+```
+pip install pydargs
 ```
 
 ## ArgumentParser arguments
