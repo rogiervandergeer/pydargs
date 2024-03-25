@@ -151,8 +151,8 @@ class Config:
 ```
 When indicated, this field is not added to the parser and cannot be overridden with an argument.
 
-### init=False
-Fields marked with init=False will be ignored by pydargs and cannot be overridden with an argument.
+### Fields excluded from the `__init__()`
+Fields not included in the `__init__()` (i.e. with `init=False`, see [here](https://docs.python.org/3/library/dataclasses.html#dataclasses.field) ) will be ignored by pydargs and cannot be overridden with an argument.
 
 ```python
 @dataclass
@@ -161,7 +161,7 @@ class Config:
     ignored: str = field(init=False)
 ```
 
-Additionally, this field will not be present on the config object at all. It is recommended to add a [__post_init__ method](https://docs.python.org/3/library/dataclasses.html#post-init-processing) to the dataclass to set the value of the field.
+This could be useful in combination with a [`__post_init__()` method](https://docs.python.org/3/library/dataclasses.html#post-init-processing) to set the value of the field.
 
 
 ### `help`
