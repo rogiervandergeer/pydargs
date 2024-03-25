@@ -1,4 +1,5 @@
-from functools import partial
+from functools import cache, partial
+from importlib.util import find_spec
 from typing import Any, Callable, TypeVar
 
 Fct = TypeVar("Fct")
@@ -18,3 +19,8 @@ def rename(name: str) -> Callable[[Fct], Fct]:
         return f
 
     return wrapper
+
+
+@cache
+def yaml_available() -> bool:
+    return find_spec("yaml") is not None
