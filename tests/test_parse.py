@@ -71,13 +71,18 @@ class TestIgnoreArg:
         a: int = 5
         b: str = field(default="something", metadata={"ignore_arg": True})
         c: bool = field(default=False, metadata=dict(ignore_arg=False, as_flags=True))
+        d: str = field(init=False)
         z: str = "dummy"
+
+        def __post_init__(self):
+            self.d = "post_init"
 
     def test_ignore_default(self) -> None:
         config = parse(self.Config, [])
         assert config.a == 5
         assert config.b == "something"
         assert config.c is False
+        assert config.d == "post_init"
         assert config.z == "dummy"
 
     def test_ignore_valid(self) -> None:
@@ -86,11 +91,12 @@ class TestIgnoreArg:
         assert config.b == "something"
         assert config.c is True
 
-    def test_ignore_invalid(self, capsys) -> None:
+    @mark.parametrize("args", [["--b", "2"], ["--d", "something_else"]])
+    def test_ignore_invalid(self, capsys, args) -> None:
         with raises(SystemExit):
-            parse(self.Config, ["--b", "2"])
+            parse(self.Config, args)
         captured = capsys.readouterr()
-        assert "error: unrecognized arguments: --b 2" in captured.err
+        assert f"error: unrecognized arguments: {' '.join(args)}" in captured.err
 
     def test_ignore_invalid_no_default(self, capsys) -> None:
         @dataclass
@@ -100,6 +106,16 @@ class TestIgnoreArg:
 
         with raises(TypeError):
             parse(TConfig, [])
+
+    def test_property_with_init_false_no_default(self) -> None:
+        @dataclass
+        class Config:
+            a: int = 5
+            d: str = field(init=False)
+            z: str = "dummy"
+
+        config = parse(Config, [])
+        assert getattr(config, "d", None) is None
 
 
 class TestPositional:
