@@ -165,7 +165,7 @@ def _create_parser(tp: Type[Dataclass], load_from_config: bool, **kwargs: Any) -
             "--config-file",
             required=False,
             type=Path,
-            help=f"Override configuration defaults from a {supported_types}-formatted file.",
+            help=f"Override configuration defaults from a {supported_types}formatted file.",
         )
     _add_arguments(parser, tp)
     return parser
