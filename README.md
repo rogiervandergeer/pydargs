@@ -111,7 +111,7 @@ if __name__ == "__main__":
 
 with the following arguments
 
-`entrypoint --file defaults.json --b xyz`
+`entrypoint --config-file defaults.json --b xyz`
 
 would result in `Config(a=1, b="xyz")`.
 
