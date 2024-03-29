@@ -181,6 +181,8 @@ def _add_arguments(
     for field in fields(tp):
         if field.metadata.get("ignore_arg", False):
             continue
+        if field.init is False:
+            continue
         if _is_command(field):
             _add_subparsers(parser, field, dest_prefix)
             has_subparser = True
