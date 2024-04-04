@@ -126,6 +126,55 @@ The dataclass can have fields of the base types: `int`, `float`, `str`, `bool`, 
 - A union of multiple dataclasses, that in turn contain fields of supported types,
   which will be parsed in [Subparsers](#subparsers).
 
+## Overriding defaults from a file
+
+Pydargs can also consume values from a JSON- or YAML-formatted file. To enable
+this, pass `add_config_file_argument=True` to the `parse` function, which will add a `--config-file`
+command line argument. If provided, the values from this file will override the defaults
+of the dataclass fields. Any command line arguments passed will override the
+defaults provided in the file.
+
+For example, with the following contents in `defaults.json`:
+
+```json
+{
+  "a": 1,
+  "b": "abc"
+}
+```
+
+then running this code
+
+```python
+from dataclasses import dataclass
+from pydargs import parse
+
+
+@dataclass
+class Config:
+  a: int = 2
+  b: str = "def"
+
+
+if __name__ == "__main__":
+  config = parse(Config, add_config_file_argument=True)
+```
+
+with the following arguments
+
+`entrypoint --config-file defaults.json --b xyz`
+
+would result in `Config(a=1, b="xyz")`.
+
+Note that:
+- Only _defaults_ can be overridden. Any dataclass fields without a default must always be provided on the command line.
+- Any extra keys present inside the file but not matching a field in the dataclass will be ignored,
+  and if any are present a warning will be raised.
+- In order to load defaults from a YAML-formatted file, [PyYAML](https://pyyaml.org/wiki/PyYAMLDocumentation) has
+  to be installed. To install it with pydargs, run `pip install pydargs[pyyaml]`.
+- The parsed dataclass may not have a field named `config_file`.
+- The defaults provided in the file will not be type-casted by pydargs, and hence only JSON-native types are supported.
+
 ## Metadata
 
 Additional options can be provided to the dataclass field metadata.
@@ -306,6 +355,9 @@ Please be aware of the following:
   If you must add a default, for example for instantiating your dataclass elsewhere, do `config: Config = field(default_factory=Config)`, assuming that all fields in `Config` have a default.
 - Nested dataclasses can not be positional (although _fields of_ the nested dataclass can be).
 - Argument names must not collide. In the example above, the `Base` class should not contain a field named `config_field_a`.
+- When reading [defaults from a file](#loading-defaults-from-file), the data inside the file may be nested like the dataclasses as well as flat with prefixes.
+  E.g. `{"config": {"field_b": "xyz"}` has the same effect as `{"config_field_b": "xyz"}`. Pydargs will raise an
+  exception in the case of collisions between keys in alternative formats.
 
 ## Subparsers
 

@@ -1,8 +1,10 @@
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Union
 from sys import version_info
+from yaml import dump
 
-from pytest import mark, raises
+from pytest import mark, raises, warns
 
 from pydargs import parse
 
@@ -93,6 +95,23 @@ class TestParseCommand:
         assert config.command.c == 12
         assert config.command.e == "positional"
         assert config.flag is False
+
+    def test_from_file(self, tmp_path: Path):
+        (tmp_path / "config.yaml").write_text(dump({"var": 100, "command": {"b": "b", "c": 0}}))
+        with warns(UserWarning) as warnings:
+            config = parse(
+                self.Config,
+                ["--config-file", str((tmp_path / "config.yaml")), "Command1", "--a", "123"],
+                add_config_file_argument=True,
+            )
+        assert config.var == 100
+        assert isinstance(config.command, Command1)
+        assert config.command.a == 123
+        assert config.command.b == "b"
+        assert (
+            str(warnings[0].message)
+            == "The following keys from the provided configuration file were not consumed: command_c"
+        )
 
 
 class TestDoubleCommand:
