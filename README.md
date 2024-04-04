@@ -357,7 +357,7 @@ Please be aware of the following:
 - Argument names must not collide. In the example above, the `Base` class should not contain a field named `config_field_a`.
 - When reading [defaults from a file](#loading-defaults-from-file), the data inside the file may be nested like the dataclasses as well as flat with prefixes.
   E.g. `{"config": {"field_b": "xyz"}` has the same effect as `{"config_field_b": "xyz"}`. Pydargs will raise an
-  exception in the case of collisions between these alternatives.
+  exception in the case of collisions between keys in alternative formats.
 
 ## Subparsers
 
