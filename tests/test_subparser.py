@@ -102,7 +102,7 @@ class TestParseCommand:
             config = parse(
                 self.Config,
                 ["--config-file", str((tmp_path / "config.yaml")), "Command1", "--a", "123"],
-                load_from_config=True,
+                add_config_file_argument=True,
             )
         assert config.var == 100
         assert isinstance(config.command, Command1)

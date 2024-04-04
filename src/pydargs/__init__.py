@@ -36,25 +36,26 @@ Dataclass = TypeVar("Dataclass", bound=DataClassProtocol)
 
 
 def parse(
-    tp: Type[Dataclass], args: Optional[list[str]] = None, load_from_config: bool = False, **kwargs: Any
+    tp: Type[Dataclass], args: Optional[list[str]] = None, add_config_file_argument: bool = False, **kwargs: Any
 ) -> Dataclass:
     """Instantiate an object of the provided dataclass type from command line arguments.
 
     Args:
         tp: Type of the object to instantiate. This is expected to be a dataclass.
         args: Optional list of arguments. Defaults to sys.argv.
-        load_from_config: If True, add a --config-file argument to load defaults from a JSON- or YAML-formatted file.
+        add_config_file_argument: If True, add a --config-file argument to load allow loading
+            defaults from a JSON- or YAML-formatted file.
         **kwargs: Keyword arguments passed to the ArgumentParser object.
 
     Returns:
         An instance of tp.
     """
-    namespace = _create_parser(tp, load_from_config=load_from_config, **kwargs).parse_args(args)
-    if load_from_config:
+    namespace = _create_parser(tp, add_config_file_argument=add_config_file_argument, **kwargs).parse_args(args)
+    if add_config_file_argument:
         _add_defaults_from_file(namespace)
     result = _create_object(tp, namespace)
     if len(namespace.__dict__):
-        if load_from_config:
+        if add_config_file_argument:
             warn(
                 "The following keys from the provided configuration file were "
                 f"not consumed: {', '.join(namespace.__dict__.keys())}"
@@ -157,9 +158,9 @@ def _create_object(tp: Type[Dataclass], namespace: Namespace, prefix: str = "") 
     return tp(**args)
 
 
-def _create_parser(tp: Type[Dataclass], load_from_config: bool, **kwargs: Any) -> ArgumentParser:
+def _create_parser(tp: Type[Dataclass], add_config_file_argument: bool, **kwargs: Any) -> ArgumentParser:
     parser = ArgumentParser(**kwargs, argument_default=SUPPRESS)
-    if load_from_config:
+    if add_config_file_argument:
         supported_types = "JSON- or YAML-" if yaml_available() else "JSON-"
         parser.add_argument(
             "--config-file",

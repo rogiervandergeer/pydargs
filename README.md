@@ -129,7 +129,7 @@ The dataclass can have fields of the base types: `int`, `float`, `str`, `bool`, 
 ## Overriding defaults from a file
 
 Pydargs can also consume values from a JSON- or YAML-formatted file. To enable
-this, pass `load_from_config=True` to the `parse` function, which will add a `--config-file`
+this, pass `add_config_file_argument=True` to the `parse` function, which will add a `--config-file`
 command line argument. If provided, the values from this file will override the defaults
 of the dataclass fields. Any command line arguments passed will override the
 defaults provided in the file.
@@ -157,7 +157,7 @@ class Config:
 
 
 if __name__ == "__main__":
-  config = parse(Config, load_from_config=True)
+  config = parse(Config, add_config_file_argument=True)
 ```
 
 with the following arguments
